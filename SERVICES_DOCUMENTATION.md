@@ -166,7 +166,6 @@ Each service includes:
 - Performance optimization tips
 - Cost management strategies
 - Error handling patterns
-- Rate limiting considerations
 - Data quality guidelines
 - Security and compliance notes
 

@@ -3,8 +3,8 @@ title: "Welcome to Orange Slice"
 description: "AI-powered sales enrichment spreadsheet platform"
 ---
 
-<img className="block dark:hidden" src="/images/hero-light.png" alt="Orange Slice Hero Light" />
-<img className="hidden dark:block" src="/images/hero-dark.png" alt="Orange Slice Hero Dark" />
+<img className="block dark:hidden rounded-lg" src="/images/garden.png" alt="Orange Slice Hero Light" />
+<img className="hidden dark:block rounded-lg" src="/images/garden.png" alt="Orange Slice Hero Dark" />
 
 ## What is Orange Slice?
 
@@ -19,34 +19,46 @@ Unlike traditional spreadsheets, Orange Slice combines:
 
 Whether you're finding LinkedIn profiles, generating personalized outreach, or scraping company data, Orange Slice makes it as simple as asking your AI assistant or writing a few lines of code.
 
-## Two Powerful Globals
+## The `ctx` Object: Your Primary Interface
 
-Every column formula has access to two global objects:
-
-<CardGroup cols={2}>
-   <Card title="ctx" icon="code" href="/ctx/overview">
-      **Context Object** - Interact with your spreadsheet Read/write cell values, navigate sheets, add rows, and control
-      workflow execution.
-   </Card>
-   <Card title="services" icon="layer-group" href="/services/introduction">
-      **Services** - Access data enrichment APIs LinkedIn data, contact info, web scraping, AI generation, and more.
-   </Card>
-</CardGroup>
+The **`ctx` (context) object** is your main way to interact with the spreadsheet. Most commonly, you'll use it to **reference other columns in the same row**:
 
 ```typescript
-// Use ctx to read data from your spreadsheet
-const name = ctx.thisRow.get("name");
-const company = ctx.thisRow.get("company");
+// Get values from other columns in the current row
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+const title = ctx.thisRow.get("Title");
 
-// Use services to enrich with external data
+// Use those values in your logic
+return `${name} is a ${title} at ${company}`;
+```
+
+Beyond reading cells, `ctx` lets you write values, navigate between sheets, add rows, and control workflow execution. [Learn more about ctx →](/ctx/overview)
+
+## The `services` Object: Data Enrichment
+
+The **`services` object** gives you access to external data sources and AI capabilities:
+
+```typescript
+// Combine ctx (reading cells) with services (enrichment)
 const linkedin = await services.person.linkedin.findUrl({
-   name: name,
-   company: company,
+   name: ctx.thisRow.get("Name"),
+   company: ctx.thisRow.get("Company"),
 });
 
-// Use ctx to write results back
-ctx.thisRow.set({ linkedin_url: linkedin });
+return linkedin;
 ```
+
+[Explore all available services →](/services/introduction)
+
+<CardGroup cols={2}>
+   <Card title="ctx Documentation" icon="code" href="/ctx/overview">
+      Read/write cells, navigate sheets, and control workflows
+   </Card>
+   <Card title="services Documentation" icon="layer-group" href="/services/introduction">
+      LinkedIn, contact info, web scraping, AI, and more
+   </Card>
+</CardGroup>
 
 ## Key Capabilities
 
@@ -89,7 +101,7 @@ Integrate with dozens of data providers:
 
 Run operations on thousands of rows efficiently with:
 
--  Parallel processing with automatic rate limiting
+-  Parallel processing across multiple rows
 -  Dependency resolution (columns run in the right order)
 -  Progress tracking and cost monitoring
 -  Pause, resume, and retry capabilities

@@ -8,6 +8,59 @@ icon: "brain"
 
 AI services provide powerful tools for generating content, extracting structured data, and conducting deep research using state-of-the-art language models.
 
+## Choosing the Right Tool
+
+<AccordionGroup>
+  <Accordion title="📊 Extracting Data from a Specific Website" icon="globe">
+    **Use: Scrape + Generate Object**
+    
+    Perfect for gathering structured information from a known website. For example:
+    - "How many physicians are at this doctor's office?"
+    - "What are the product prices on this page?"
+    - "Extract all team members from the about page"
+    
+    ```typescript
+    const scraped = await services.scrape.website({ url: "https://example.com" });
+    const data = await services.ai.generateObject({
+      prompt: `How many physicians work here? ${scraped.markdown}`,
+      schema: z.object({ physician_count: z.number(), names: z.array(z.string()) })
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="🔍 Answering Complex Questions (Not on a Specific Site)" icon="magnifying-glass">
+    **Use: Generate Text with Web Search**
+    
+    Best for questions that require searching across multiple sources. For example:
+    - "What are the top CRM tools for small businesses?"
+    - "How does quantum computing work?"
+    - "What are the latest developments in renewable energy?"
+    
+    ```typescript
+    const result = await services.ai.generateText({
+      prompt: "What are the best practices for API security in 2024?",
+      model: "claude-sonnet-4-5-20250929",
+      enableWebSearch: true
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="📚 Deep, Comprehensive Research" icon="book">
+    **Use: Generate Research**
+    
+    For intensive research requiring thorough analysis across many sources. For example:
+    - "Comprehensive market analysis of the EV industry"
+    - "Due diligence report on Company X"
+    - "Complete competitive analysis of top 5 CRM platforms"
+    
+    ```typescript
+    const result = await services.ai.generateResearch({
+      query: "Analyze the current state of the electric vehicle market with growth projections"
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
 ## Available Services
 
 <CardGroup cols={3}>

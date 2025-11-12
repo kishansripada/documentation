@@ -12,7 +12,7 @@ The `ctx` object provides workflow control methods that help you manage executio
 
 ### sleep()
 
-Pause execution for a specified duration. Useful for rate limiting, waiting for external processes, or spacing out API calls.
+Pause execution for a specified duration. Useful for waiting for external processes or spacing out API calls.
 
 ```typescript
 ctx.sleep(milliseconds: number | string): Promise<void>
@@ -101,31 +101,6 @@ if (!email) {
 ```
 
 ## Common Patterns
-
-### Rate Limiting API Calls
-
-```typescript
-// Process multiple rows with rate limiting
-const companies = await ctx.sheet("Companies").getRowsByValue("status", "pending");
-
-for (const company of companies) {
-   try {
-      const data = await services.company.linkedin.enrich({
-         url: company.get("linkedin_url"),
-      });
-
-      company.set({
-         status: "enriched",
-         employee_count: data.employeeCount,
-      });
-
-      // Wait 500ms between requests to avoid rate limits
-      await ctx.sleep(500);
-   } catch (error) {
-      company.set({ status: "error", error_message: error.message });
-   }
-}
-```
 
 ### Optimizing with halt()
 
@@ -227,7 +202,7 @@ for (let i = 0; i < allItems.length; i += batchSize) {
 
    results.push(...batchResults);
 
-   // Wait between batches to avoid rate limits
+   // Wait between batches
    if (i + batchSize < allItems.length) {
       await ctx.sleep(2000);
    }
@@ -277,9 +252,8 @@ return message.text;
 
 1. **Use `halt()` strategically**: Only after expensive operations that can disqualify a row
 2. **Order columns wisely**: Put qualifying/filtering columns first, expensive operations later
-3. **Rate limit external APIs**: Use `sleep()` to avoid hitting rate limits
-4. **Batch with delays**: Process items in batches with sleep intervals for better resource management
-5. **Provide halt reasons**: Always include a descriptive reason when calling `halt()` for debugging
+3. **Batch with delays**: Process items in batches with sleep intervals for better resource management
+4. **Provide halt reasons**: Always include a descriptive reason when calling `halt()` for debugging
 
 </Tip>
 
