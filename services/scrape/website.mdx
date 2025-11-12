@@ -1,0 +1,376 @@
+---
+title: "Website Scraping"
+description: "Scrape websites and convert content to markdown"
+icon: "file-code"
+---
+
+## Scrape Website
+
+The workhorse function for website scraping. Reliably and efficiently scrapes website content and converts it to clean markdown format.
+
+### Method
+
+```typescript
+services.scrape.website(params);
+```
+
+### Parameters
+
+<ParamField path="url" type="string" required>
+   The URL to scrape. Must start with `http://` or `https://`
+</ParamField>
+
+<ParamField path="params" type="object" optional>
+   Scraping parameters
+   <Expandable title="Params Properties">
+      <ParamField path="limit" type="number" default={1}>
+         Number of pages to scrape (follows links from the initial page)
+      </ParamField>
+   </Expandable>
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with:
+
+<ResponseField name="markdown" type="string">
+   Combined markdown content from all scraped pages
+</ResponseField>
+
+<ResponseField name="data" type="array">
+   Array of individual page data
+   <Expandable title="Page Data Properties">
+      <ResponseField name="markdown" type="string">
+         Markdown content of the page
+      </ResponseField>
+      <ResponseField name="links" type="string[]">
+         All links found on the page
+      </ResponseField>
+   </Expandable>
+</ResponseField>
+
+<ResponseField name="socialUrls" type="object">
+   Extracted social media URLs and contact information
+   <Expandable title="Social URLs Properties">
+      <ResponseField name="emailGeneral" type="string[]">
+         Email addresses found
+      </ResponseField>
+      <ResponseField name="phoneGeneral" type="string[]">
+         Phone numbers found
+      </ResponseField>
+      <ResponseField name="linkedinProfile" type="string[]">
+         LinkedIn profile URLs
+      </ResponseField>
+      <ResponseField name="linkedinCompany" type="string[]">
+         LinkedIn company page URLs
+      </ResponseField>
+      <ResponseField name="facebookProfile" type="string[]">
+         Facebook profile URLs
+      </ResponseField>
+      <ResponseField name="instagramProfile" type="string[]">
+         Instagram profile URLs
+      </ResponseField>
+      <ResponseField name="twitterUser" type="string[]">
+         Twitter/X profile URLs
+      </ResponseField>
+      <ResponseField name="youtubeChannel" type="string[]">
+         YouTube channel URLs
+      </ResponseField>
+      <ResponseField name="tiktokProfile" type="string[]">
+         TikTok profile URLs
+      </ResponseField>
+   </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic Single Page Scrape
+
+```typescript
+const result = await services.scrape.website({
+   url: "https://example.com/blog/article",
+});
+
+// Get the markdown content
+console.log(result.markdown);
+
+// Access individual page data
+const page = result.data[0];
+console.log(`Found ${page.links.length} links`);
+```
+
+### Multi-Page Scraping
+
+```typescript
+// Scrape multiple pages (follows links)
+const result = await services.scrape.website({
+   url: "https://docs.example.com",
+   params: {
+      limit: 5, // Scrape up to 5 pages
+   },
+});
+
+// Each page in the data array
+result.data.forEach((page, index) => {
+   console.log(`\n--- Page ${index + 1} ---`);
+   console.log(page.markdown.substring(0, 200) + "...");
+});
+
+// Or use the combined markdown
+console.log("\n--- All Content ---");
+console.log(result.markdown);
+```
+
+### Extract Social Media Links
+
+```typescript
+const result = await services.scrape.website({
+   url: "https://company.com",
+});
+
+const social = result.socialUrls;
+
+console.log("Contact Information:");
+if (social.emailGeneral.length > 0) {
+   console.log(`Email: ${social.emailGeneral[0]}`);
+}
+if (social.phoneGeneral.length > 0) {
+   console.log(`Phone: ${social.phoneGeneral[0]}`);
+}
+
+console.log("\nSocial Media:");
+if (social.linkedinCompany.length > 0) {
+   console.log(`LinkedIn: ${social.linkedinCompany[0]}`);
+}
+if (social.twitterUser.length > 0) {
+   console.log(`Twitter: ${social.twitterUser[0]}`);
+}
+if (social.facebookProfile.length > 0) {
+   console.log(`Facebook: ${social.facebookProfile[0]}`);
+}
+```
+
+## Use Cases
+
+### Extract Blog Content
+
+```typescript
+async function extractBlogPost(url: string) {
+   const result = await services.scrape.website({ url });
+
+   // Clean markdown content ready for processing
+   const content = result.markdown;
+
+   // Extract links for further processing
+   const links = result.data[0].links;
+   const internalLinks = links.filter((link) => link.includes(new URL(url).hostname));
+
+   return {
+      content,
+      internalLinks,
+      externalLinks: links.filter((link) => !link.includes(new URL(url).hostname)),
+   };
+}
+```
+
+### Scrape Documentation
+
+```typescript
+async function scrapeDocumentation(baseUrl: string, maxPages: number = 10) {
+   const result = await services.scrape.website({
+      url: baseUrl,
+      params: { limit: maxPages },
+   });
+
+   // Combine all pages into a single document
+   const fullDocs = result.data
+      .map((page, i) => {
+         return `## Page ${i + 1}\n\n${page.markdown}`;
+      })
+      .join("\n\n---\n\n");
+
+   return fullDocs;
+}
+
+const docs = await scrapeDocumentation("https://docs.stripe.com/api", 5);
+```
+
+### Find Contact Information
+
+```typescript
+async function findContactInfo(websiteUrl: string) {
+   const result = await services.scrape.website({ url: websiteUrl });
+
+   const contact = {
+      emails: result.socialUrls.emailGeneral,
+      phones: result.socialUrls.phoneGeneral,
+      social: {
+         linkedin: result.socialUrls.linkedinCompany[0],
+         twitter: result.socialUrls.twitterUser[0],
+         facebook: result.socialUrls.facebookProfile[0],
+         instagram: result.socialUrls.instagramProfile[0],
+      },
+   };
+
+   return contact;
+}
+
+const contact = await findContactInfo("https://company.com");
+console.log(contact);
+```
+
+### Extract Structured Data
+
+```typescript
+async function extractProductInfo(productUrl: string) {
+   const result = await services.scrape.website({ url: productUrl });
+
+   const markdown = result.markdown;
+
+   // Parse markdown to extract structured information
+   // (This is a simple example - you might use AI for better extraction)
+   const lines = markdown.split("\n");
+   const headings = lines.filter((line) => line.startsWith("#"));
+   const paragraphs = lines.filter((line) => line.length > 50 && !line.startsWith("#"));
+
+   return {
+      title: headings[0]?.replace(/^#+\s*/, ""),
+      sections: headings,
+      content: paragraphs.join("\n"),
+      links: result.data[0].links,
+   };
+}
+```
+
+### Monitor Website Changes
+
+```typescript
+async function checkForChanges(url: string, previousMarkdown: string) {
+   const result = await services.scrape.website({ url });
+   const currentMarkdown = result.markdown;
+
+   if (currentMarkdown !== previousMarkdown) {
+      console.log("Website has changed!");
+
+      // Simple diff (you might use a proper diff library)
+      const oldLength = previousMarkdown.length;
+      const newLength = currentMarkdown.length;
+      const diff = newLength - oldLength;
+
+      console.log(`Content changed by ${diff} characters`);
+
+      return {
+         changed: true,
+         newContent: currentMarkdown,
+         diff,
+      };
+   }
+
+   return { changed: false };
+}
+```
+
+### Scrape Multiple Pages
+
+```typescript
+async function scrapeMultipleUrls(urls: string[]) {
+   const results = await Promise.all(urls.map((url) => services.scrape.website({ url })));
+
+   return urls.map((url, i) => ({
+      url,
+      markdown: results[i].markdown,
+      links: results[i].data[0].links,
+      social: results[i].socialUrls,
+   }));
+}
+
+const pages = await scrapeMultipleUrls([
+   "https://example.com/about",
+   "https://example.com/pricing",
+   "https://example.com/contact",
+]);
+```
+
+### Build Knowledge Base
+
+```typescript
+async function buildKnowledgeBase(startUrl: string) {
+   const result = await services.scrape.website({
+      url: startUrl,
+      params: { limit: 10 },
+   });
+
+   // Create a structured knowledge base
+   const kb = result.data.map((page, index) => {
+      // Extract title from markdown (first heading)
+      const titleMatch = page.markdown.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1] : `Page ${index + 1}`;
+
+      return {
+         title,
+         content: page.markdown,
+         links: page.links,
+         wordCount: page.markdown.split(/\s+/).length,
+      };
+   });
+
+   return {
+      totalPages: kb.length,
+      totalWords: kb.reduce((sum, page) => sum + page.wordCount, 0),
+      pages: kb,
+   };
+}
+```
+
+## Best Practices
+
+<Tip>
+   **Default to limit: 1**: For most use cases, scraping a single page is sufficient and much faster. Only increase the
+   limit when you specifically need to follow links.
+</Tip>
+
+<Warning>
+   **Respect robots.txt**: While this tool can scrape most websites, always ensure you have permission to scrape and
+   respect the website's robots.txt file.
+</Warning>
+
+<Info>
+   **Markdown Quality**: The markdown conversion is optimized for readability and preserves the structure of the
+   original content, making it ideal for AI processing or documentation.
+</Info>
+
+## Performance Considerations
+
+```typescript
+// Fast: Single page scrape
+const quick = await services.scrape.website({
+   url: "https://example.com",
+   params: { limit: 1 },
+});
+
+// Slower: Multi-page scrape
+const comprehensive = await services.scrape.website({
+   url: "https://example.com",
+   params: { limit: 10 }, // Takes longer
+});
+```
+
+## Error Handling
+
+```typescript
+async function scrapeSafely(url: string) {
+   try {
+      const result = await services.scrape.website({ url });
+
+      if (!result.markdown || result.markdown.length === 0) {
+         console.log("No content extracted");
+         return null;
+      }
+
+      return result;
+   } catch (error) {
+      console.error(`Failed to scrape ${url}:`, error);
+      return null;
+   }
+}
+```

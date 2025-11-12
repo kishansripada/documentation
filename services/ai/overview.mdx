@@ -1,0 +1,77 @@
+---
+title: "AI Services"
+description: "Generate text, structured objects, and research reports with AI"
+icon: "brain"
+---
+
+## Overview
+
+AI services provide powerful tools for generating content, extracting structured data, and conducting deep research using state-of-the-art language models.
+
+## Available Services
+
+<CardGroup cols={3}>
+   <Card title="Generate Object" icon="brackets-curly" href="/services/ai/generate-object">
+      Create structured JSON objects from prompts
+   </Card>
+   <Card title="Generate Text" icon="text" href="/services/ai/generate-text">
+      Generate text with optional web search
+   </Card>
+   <Card title="Generate Research" icon="magnifying-glass-chart" href="/services/ai/generate-research">
+      Create comprehensive research reports
+   </Card>
+</CardGroup>
+
+## Supported Models
+
+### Text Generation
+
+-  **gpt-5-mini** - Fast and cost-effective
+-  **claude-sonnet-4-5-20250929** - High quality, balanced performance
+
+### Object Generation
+
+-  **gpt-5-mini** - Fast structured output
+-  **gemini-2.0-flash** - Google's fast model
+-  **gemini-2.5-pro** - Google's most capable model
+-  **claude-sonnet-4-5-20250929** - Anthropic's latest model
+
+## Common Use Cases
+
+### Extract Structured Data
+
+```typescript
+const result = await services.ai.generateObject({
+   prompt: "Extract contact information from: John Doe, john@example.com, (555) 123-4567",
+   schema: z.object({
+      name: z.string(),
+      email: z.string(),
+      phone: z.string(),
+   }),
+});
+
+console.log(result.object);
+// { name: "John Doe", email: "john@example.com", phone: "(555) 123-4567" }
+```
+
+### Generate Content
+
+```typescript
+const result = await services.ai.generateText({
+   prompt: "Write a professional email introducing our new product",
+   model: "gpt-5-mini",
+});
+
+console.log(result.text);
+```
+
+### Deep Research
+
+```typescript
+const result = await services.ai.generateResearch({
+   query: "What are the latest trends in AI for 2024?",
+});
+
+console.log(result.content); // Comprehensive research report
+console.log(`Cost: $${result.cost}`);
+```

@@ -1,0 +1,131 @@
+---
+title: "Context Object Overview"
+description: "Programmatically interact with your spreadsheet using the ctx object"
+icon: "code"
+---
+
+## Introduction
+
+The Context object (`ctx`) provides a powerful API for programmatically interacting with your spreadsheet. It allows you to read and write cell values, manipulate rows, navigate between sheets, and orchestrate complex workflows—all from within your column formulas.
+
+## Available APIs
+
+<CardGroup cols={2}>
+   <Card title="This Row" icon="table-rows" href="/ctx/this-row">
+      Get and set values on the current row
+   </Card>
+   <Card title="This Cell" icon="table-cells" href="/ctx/this-cell">
+      Access and modify the currently executing cell
+   </Card>
+   <Card title="Sheets" icon="table" href="/ctx/sheets">
+      Add rows and query data across sheets
+   </Card>
+   <Card title="Cells & Rows" icon="grip" href="/ctx/cells">
+      Direct access to any cell or row by ID or value
+   </Card>
+   <Card title="Utilities" icon="wrench" href="/ctx/utilities">
+      Helper functions for common data transformations
+   </Card>
+   <Card title="Workflow Control" icon="traffic-light" href="/ctx/workflow">
+      Orchestrate execution with sleep and halt
+   </Card>
+</CardGroup>
+
+## Getting Started
+
+The `ctx` object is automatically available in all column formulas:
+
+```typescript
+// Get a value from the current row
+const email = ctx.thisRow.get("email");
+
+// Set multiple values on the current row
+ctx.thisRow.set({
+   status: "processed",
+   lastUpdated: new Date().toISOString(),
+});
+
+// Add a row to another sheet
+const newRow = await ctx.sheet("Contacts").addRow({
+   name: ctx.thisRow.get("name"),
+   email: email,
+   source: "Import",
+});
+
+// Query data by value
+const company = await ctx.getRowByValue("Companies", "Acme Corp");
+```
+
+## Key Features
+
+-  **Row Operations**: Read and write data on the current row or any row in the sheet
+-  **Cross-Sheet Access**: Push data between sheets and query related records
+-  **Foreign Key Navigation**: Use dot notation to traverse relationships (e.g., `Companies.Owner.name`)
+-  **Workflow Control**: Optimize execution with `halt()` for early termination signals
+-  **Type Safety**: Column names and sheet names are validated at runtime
+-  **Metadata Management**: Store custom metadata on cells for advanced use cases
+
+## Context Properties
+
+The `ctx` object includes several key properties:
+
+-  `ctx.rowId` - UUID of the current row
+-  `ctx.colId` - UUID of the current column
+-  `ctx.thisRow` - Helpers for the current row
+-  `ctx.thisCell` - Helpers for the current cell (unavailable in webhooks)
+-  `ctx.thisColumn` - Helpers for the current column
+-  `ctx.thisSheet` - Helpers scoped to the current sheet
+-  `ctx.utils` - Utility functions for data transformation
+
+## Common Patterns
+
+### Enriching Data Across Sheets
+
+```typescript
+// Get company name from current row
+const companyName = ctx.thisRow.get("company");
+
+// Find or create company in Companies sheet
+const company = await ctx.sheet("Companies").addRow({
+   name: companyName,
+});
+
+// Link the company back to this row
+ctx.thisRow.set({ company_id: company.id });
+```
+
+### Conditional Workflow Optimization
+
+```typescript
+// Perform expensive operation
+const analysis = await services.ai.generateObject({
+   prompt: `Analyze if ${companyName} is in our ICP`,
+   schema: z.object({ isICP: z.boolean() }),
+});
+
+// Signal early termination if not a good fit
+if (!analysis.object.isICP) {
+   ctx.halt("Not in ICP");
+   return false;
+}
+
+// Continue with other operations...
+```
+
+### Aggregating Related Data
+
+```typescript
+// Get all jobs related to this company
+const jobs = ctx.thisRow.getRelatedRows("Jobs");
+
+// Calculate aggregate metrics
+const totalJobs = jobs.length;
+const openRoles = jobs.filter((job) => job.get("status") === "open").length;
+
+// Update the current row
+ctx.thisRow.set({
+   total_jobs: totalJobs,
+   open_roles: openRoles,
+});
+```
+

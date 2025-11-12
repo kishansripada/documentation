@@ -1,0 +1,64 @@
+---
+title: "Services Overview"
+description: "A comprehensive suite of services for data enrichment, web scraping, and AI-powered operations"
+icon: "layer-group"
+---
+
+## Introduction
+
+The Services object provides a powerful collection of APIs for enriching data, scraping web content, and leveraging AI capabilities. All services are organized into logical namespaces for easy discovery and use.
+
+## Available Services
+
+<CardGroup cols={2}>
+   <Card title="Person Services" icon="user" href="/services/person/overview">
+      Find and enrich LinkedIn profiles, get contact information
+   </Card>
+   <Card title="Company Services" icon="building" href="/services/company/overview">
+      Discover company data, employees, and career pages
+   </Card>
+   <Card title="Web Services" icon="globe" href="/services/web/overview">
+      Search engines and web scraping capabilities
+   </Card>
+   <Card title="AI Services" icon="brain" href="/services/ai/overview">
+      Generate text, objects, and research reports with AI
+   </Card>
+   <Card title="Geo Services" icon="location-dot" href="/services/geo/overview">
+      Parse and geocode addresses
+   </Card>
+   <Card title="Scrape Services" icon="spider-web" href="/services/scrape/overview">
+      Advanced website scraping and sitemap discovery
+   </Card>
+</CardGroup>
+
+## Getting Started
+
+All services are accessed through the global `services` object:
+
+```typescript
+// Example: Find a LinkedIn profile
+const linkedinUrl = await services.person.linkedin.findUrl({
+   name: "John Doe",
+   company: "Acme Corp",
+});
+
+// Example: Enrich company data
+const companyData = await services.company.linkedin.enrich({
+   url: "https://linkedin.com/company/acme",
+});
+
+// Example: Generate AI content
+const result = await services.ai.generateText({
+   prompt: "Write a product description",
+   model: "gpt-5-mini",
+});
+```
+
+## Key Features
+
+-  **LinkedIn Enrichment**: Find and enrich person and company profiles with comprehensive data
+-  **Contact Discovery**: Get verified email addresses and phone numbers
+-  **Web Scraping**: Extract content from websites with markdown conversion
+-  **AI Generation**: Create structured data, text, and research reports
+-  **Career Intelligence**: Find job postings and career pages
+-  **Geolocation**: Parse and validate addresses with coordinates

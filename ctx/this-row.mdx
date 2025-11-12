@@ -1,0 +1,214 @@
+---
+title: "This Row"
+description: "Get and set values on the current row"
+icon: "table-rows"
+---
+
+## Overview
+
+`ctx.thisRow` provides convenient methods to read and write data on the currently executing row. This is the most common way to interact with your data within column formulas.
+
+<Note>
+   `ctx.thisRow` is **not available** in webhook columns, as there is no "current row" context during webhook
+   execution.
+</Note>
+
+## Methods
+
+### get()
+
+Get a value from the current row by column name.
+
+```typescript
+ctx.thisRow.get(columnName: string): any
+```
+
+**Parameters:**
+
+-  `columnName` - The name of the column to read from
+
+**Returns:** The value stored in that column for the current row
+
+**Example:**
+
+```typescript
+const email = ctx.thisRow.get("email");
+const companyName = ctx.thisRow.get("company");
+```
+
+#### Foreign Key Navigation
+
+For foreign key columns, use the **referenced sheet name** instead of the column name, and use dot notation to access fields on the related record:
+
+```typescript
+// If "company_id" is a foreign key to the "Companies" sheet
+const companyName = ctx.thisRow.get("Companies.name");
+const companyWebsite = ctx.thisRow.get("Companies.website");
+
+// You can chain through multiple relationships
+const ownerEmail = ctx.thisRow.get("Companies.Owner.email");
+```
+
+### set()
+
+Set one or more values on the current row.
+
+```typescript
+ctx.thisRow.set(values: Record<string, any>): void
+```
+
+**Parameters:**
+
+-  `values` - An object mapping column names to new values
+
+**Example:**
+
+```typescript
+// Set a single value
+ctx.thisRow.set({ status: "processed" });
+
+// Set multiple values at once
+ctx.thisRow.set({
+   status: "enriched",
+   lastUpdated: new Date().toISOString(),
+   score: 95,
+});
+```
+
+<Tip>
+   Using `ctx.thisRow.set()` with multiple fields is more efficient than creating separate "helper columns" for each
+   intermediate value.
+</Tip>
+
+### run()
+
+Manually trigger execution of the current row's formulas.
+
+```typescript
+ctx.thisRow.run(): void
+```
+
+**Example:**
+
+```typescript
+// After updating values, re-run formulas
+ctx.thisRow.set({ input: "new value" });
+ctx.thisRow.run();
+```
+
+### getRelatedRows()
+
+Get all rows from a related sheet that have a foreign key pointing to the current row.
+
+```typescript
+ctx.thisRow.getRelatedRows(sheetName: string): Row[]
+```
+
+**Parameters:**
+
+-  `sheetName` - The name of the sheet to query for related rows
+
+**Returns:** Array of `Row` objects that reference the current row
+
+**Example:**
+
+```typescript
+// Get all jobs posted by this company
+const jobs = ctx.thisRow.getRelatedRows("Jobs");
+
+// Calculate metrics
+const openJobs = jobs.filter((job) => job.get("status") === "open");
+const totalApplicants = jobs.reduce((sum, job) => sum + job.get("applicant_count"), 0);
+
+ctx.thisRow.set({
+   open_jobs_count: openJobs.length,
+   total_applicants: totalApplicants,
+});
+```
+
+## Row Object
+
+When you work with rows (from `getRelatedRows` or other methods), each `Row` object has the following properties and methods:
+
+### Properties
+
+-  `row.id` - UUID of the row
+-  `row.index` - Numeric index of the row (0-based)
+-  `row.wasCreated` - Boolean indicating if this row was newly created (via `addRow`)
+-  `row.wasUpdated` - Boolean indicating if this row was updated (via `addRow` with unique column match)
+
+### Methods
+
+-  `row.get(columnName)` - Get a value from this row
+-  `row.set(values)` - Set values on this row
+-  `row.run(options?)` - Trigger execution of this row's formulas
+   -  `options.excludeColumns` - Array of column names to skip during execution
+
+**Example:**
+
+```typescript
+const relatedJobs = ctx.thisRow.getRelatedRows("Jobs");
+
+for (const job of relatedJobs) {
+   console.log(`Job ${job.index}: ${job.get("title")}`);
+
+   // Update the job
+   job.set({ lastChecked: new Date().toISOString() });
+
+   // Re-run formulas, but skip expensive columns
+   job.run({ excludeColumns: ["ai_analysis"] });
+}
+```
+
+## Common Patterns
+
+### Conditional Logic Based on Row Data
+
+```typescript
+const status = ctx.thisRow.get("status");
+
+if (status === "pending") {
+   // Perform enrichment
+   const data = await services.company.linkedin.enrich({
+      url: ctx.thisRow.get("linkedin_url"),
+   });
+
+   ctx.thisRow.set({
+      status: "enriched",
+      employee_count: data.employeeCount,
+      industry: data.industry,
+   });
+}
+```
+
+### Aggregating Related Records
+
+```typescript
+const employees = ctx.thisRow.getRelatedRows("Employees");
+
+const stats = {
+   total_employees: employees.length,
+   engineers: employees.filter((e) => e.get("department") === "Engineering").length,
+   avg_tenure: employees.reduce((sum, e) => sum + e.get("tenure_years"), 0) / employees.length,
+};
+
+ctx.thisRow.set(stats);
+```
+
+### Cross-Sheet Data Sync
+
+```typescript
+// Get data from current row
+const personData = {
+   name: ctx.thisRow.get("name"),
+   email: ctx.thisRow.get("email"),
+   company: ctx.thisRow.get("Companies.name"),
+};
+
+// Create or update in another sheet
+const contactRow = await ctx.sheet("Contacts").addRow(personData);
+
+// Store the reference
+ctx.thisRow.set({ contact_id: contactRow.id });
+```
+

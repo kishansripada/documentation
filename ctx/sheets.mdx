@@ -1,0 +1,283 @@
+---
+title: "Sheets"
+description: "Add rows and query data across sheets"
+icon: "table"
+---
+
+## Overview
+
+The `ctx.sheet()` and `ctx.thisSheet` APIs allow you to interact with sheets in your workbook. You can add rows, query data by value, and work across multiple sheets to build complex data pipelines.
+
+## Methods
+
+### ctx.sheet()
+
+Get a reference to any sheet in your workbook by name.
+
+```typescript
+ctx.sheet(sheetName: string): Sheet
+```
+
+**Parameters:**
+
+-  `sheetName` - The name of the sheet to access
+
+**Returns:** A `Sheet` object with methods for interacting with that sheet
+
+**Example:**
+
+```typescript
+const companiesSheet = ctx.sheet("Companies");
+const contactsSheet = ctx.sheet("Contacts");
+```
+
+### ctx.thisSheet
+
+A convenience reference to the current sheet. Equivalent to `ctx.sheet(currentSheetName)`.
+
+```typescript
+const currentSheet = ctx.thisSheet;
+```
+
+## Sheet Methods
+
+### addRow()
+
+Add a new row to the sheet, or update an existing row if a unique column match is found.
+
+```typescript
+sheet.addRow(
+   data: Record<string, any>,
+   options?: { create?: boolean }
+): Promise<Row>
+```
+
+**Parameters:**
+
+-  `data` - An object mapping column names to values
+-  `options.create` - If `true`, create columns that don't exist (default: `false`)
+
+**Returns:** A `Row` object representing the created or updated row
+
+**Behavior:**
+
+-  If a unique column exists and matches, the existing row will be updated
+-  If no match is found, a new row is created
+-  The returned `Row` object has `wasCreated` or `wasUpdated` properties to indicate what happened
+
+**Example:**
+
+```typescript
+// Add a new company
+const company = await ctx.sheet("Companies").addRow({
+   name: "Acme Corp",
+   website: "https://acme.com",
+   industry: "Technology",
+});
+
+console.log(company.wasCreated); // true
+console.log(company.id); // UUID of the new row
+
+// Add another row with the same name (if 'name' is unique, it updates)
+const updated = await ctx.sheet("Companies").addRow({
+   name: "Acme Corp",
+   employee_count: 500,
+});
+
+console.log(updated.wasUpdated); // true
+console.log(updated.id === company.id); // true (same row)
+```
+
+#### Creating Columns Dynamically
+
+```typescript
+// Create columns if they don't exist
+const row = await ctx.sheet("Companies").addRow(
+   {
+      name: "New Company",
+      custom_field_1: "value1",
+      custom_field_2: "value2",
+   },
+   { create: true }
+);
+```
+
+### getRowsByValue()
+
+Find all rows in the sheet where a specific column matches a value.
+
+```typescript
+sheet.getRowsByValue(columnName: string, value: any): Promise<Row[]>
+```
+
+**Parameters:**
+
+-  `columnName` - The name of the column to search
+-  `value` - The value to match
+
+**Returns:** An array of `Row` objects that match the criteria
+
+**Example:**
+
+```typescript
+// Find all companies in the Technology industry
+const techCompanies = await ctx.sheet("Companies").getRowsByValue("industry", "Technology");
+
+console.log(`Found ${techCompanies.length} tech companies`);
+
+for (const company of techCompanies) {
+   console.log(company.get("name"));
+}
+```
+
+## Common Patterns
+
+### Push Data to Another Sheet
+
+```typescript
+// Get data from current row
+const personData = {
+   name: ctx.thisRow.get("name"),
+   email: ctx.thisRow.get("email"),
+   company: ctx.thisRow.get("Companies.name"),
+   title: ctx.thisRow.get("title"),
+};
+
+// Push to Contacts sheet
+const contact = await ctx.sheet("Contacts").addRow(personData);
+
+// Store the reference
+ctx.thisRow.set({ contact_id: contact.id });
+```
+
+### Process Array Data Across Sheets
+
+```typescript
+// Get an array of job postings from an API
+const jobs = await services.company.careers.getJobs({
+   url: ctx.thisRow.get("careers_url"),
+});
+
+// Create a row in Jobs sheet for each posting
+for (const job of jobs.jobs) {
+   await ctx.sheet("Jobs").addRow({
+      company_id: ctx.rowId, // Link back to this company
+      title: job.title,
+      location: job.location,
+      url: job.url,
+      posted_date: job.postedDate,
+   });
+}
+
+// Update summary on current row
+ctx.thisRow.set({ total_jobs: jobs.jobs.length });
+```
+
+### Deduplicate and Merge Data
+
+```typescript
+// Check if company already exists
+const existingCompanies = await ctx.sheet("Companies").getRowsByValue("name", companyName);
+
+if (existingCompanies.length > 0) {
+   // Update existing company
+   const existing = existingCompanies[0];
+   existing.set({
+      last_seen: new Date().toISOString(),
+      source: "Import",
+   });
+
+   return existing.id;
+} else {
+   // Create new company
+   const newCompany = await ctx.sheet("Companies").addRow({
+      name: companyName,
+      source: "Import",
+      created_at: new Date().toISOString(),
+   });
+
+   return newCompany.id;
+}
+```
+
+### Aggregate Data from Multiple Sheets
+
+```typescript
+// Get all related records
+const jobs = await ctx.thisSheet.getRowsByValue("company_id", ctx.rowId);
+const employees = await ctx.sheet("Employees").getRowsByValue("company_id", ctx.rowId);
+
+// Calculate aggregates
+const metrics = {
+   total_jobs: jobs.length,
+   open_jobs: jobs.filter((j) => j.get("status") === "open").length,
+   total_employees: employees.length,
+   engineering_employees: employees.filter((e) => e.get("department") === "Engineering").length,
+};
+
+// Update current row
+ctx.thisRow.set(metrics);
+```
+
+### Batch Operations
+
+```typescript
+// Get all pending rows
+const pendingRows = await ctx.thisSheet.getRowsByValue("status", "pending");
+
+console.log(`Processing ${pendingRows.length} pending rows`);
+
+for (const row of pendingRows) {
+   try {
+      // Process each row
+      const result = await services.company.linkedin.enrich({
+         url: row.get("linkedin_url"),
+      });
+
+      row.set({
+         status: "completed",
+         employee_count: result.employeeCount,
+         industry: result.industry,
+      });
+   } catch (error) {
+      row.set({
+         status: "error",
+         error_message: error.message,
+      });
+   }
+}
+```
+
+## Row Object Reference
+
+Each `Row` object returned by sheet methods has:
+
+### Properties
+
+-  `row.id` - UUID of the row
+-  `row.index` - Numeric index (0-based)
+-  `row.wasCreated` - Boolean, true if newly created
+-  `row.wasUpdated` - Boolean, true if updated
+
+### Methods
+
+-  `row.get(columnName)` - Get a value
+-  `row.set(values)` - Set one or more values
+-  `row.run(options?)` - Trigger formula execution
+
+**Example:**
+
+```typescript
+const company = await ctx.sheet("Companies").addRow({ name: "Acme Corp" });
+
+if (company.wasCreated) {
+   console.log(`Created new company with ID: ${company.id}`);
+} else {
+   console.log(`Updated existing company at index: ${company.index}`);
+}
+
+// Read and update
+const currentStatus = company.get("status");
+company.set({ status: "active", last_updated: new Date().toISOString() });
+```
+

@@ -1,0 +1,54 @@
+---
+title: "Web Services"
+description: "Search engines and web discovery tools"
+icon: "globe"
+---
+
+## Overview
+
+Web services provide tools for searching the internet and discovering information through search engines.
+
+## Available Services
+
+<Card title="Search" icon="magnifying-glass" href="/services/web/search">
+   Perform Google searches and access knowledge graph data
+</Card>
+
+## Common Use Cases
+
+### Basic Web Search
+
+```typescript
+const results = await services.web.search({
+   query: "best CRM software 2024",
+});
+
+results.results.forEach((result) => {
+   console.log(result.title);
+   console.log(result.link);
+   console.log(result.snippet);
+});
+```
+
+### Search Within a Domain
+
+```typescript
+const results = await services.web.search({
+   query: "pricing",
+   domain: "stripe.com",
+});
+```
+
+### Access Knowledge Graph
+
+```typescript
+const results = await services.web.search({
+   query: "Microsoft",
+});
+
+if (results.knowledgeGraph) {
+   console.log(results.knowledgeGraph.title);
+   console.log(results.knowledgeGraph.description);
+   console.log(results.knowledgeGraph.website);
+}
+```

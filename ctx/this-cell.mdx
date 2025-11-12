@@ -1,0 +1,239 @@
+---
+title: "This Cell"
+description: "Access and modify the currently executing cell"
+icon: "table-cells"
+---
+
+## Overview
+
+`ctx.thisCell` provides direct access to the currently executing cell, allowing you to read its value, update it, and manage cell-level metadata.
+
+<Warning>
+   `ctx.thisCell` is **not available** in webhook columns. Webhooks execute in a different context without a specific
+   cell reference.
+</Warning>
+
+## Methods
+
+### get()
+
+Get the current value of the executing cell.
+
+```typescript
+ctx.thisCell.get(): any
+```
+
+**Returns:** The current value stored in this cell
+
+**Example:**
+
+```typescript
+const currentValue = ctx.thisCell.get();
+
+// Use the current value in logic
+if (currentValue === null) {
+   // First time running, initialize
+   ctx.thisCell.set("initialized");
+}
+```
+
+### set()
+
+Set a new value for the current cell.
+
+```typescript
+ctx.thisCell.set(value: any): void
+```
+
+**Parameters:**
+
+-  `value` - The new value to store in this cell
+
+**Example:**
+
+```typescript
+// Set a simple value
+ctx.thisCell.set("completed");
+
+// Set a computed value
+const result = await services.ai.generateText({
+   prompt: "Summarize this company",
+   model: "gpt-5-mini",
+});
+
+ctx.thisCell.set(result.text);
+```
+
+<Note>
+   Using `ctx.thisCell.set()` is equivalent to returning a value from your column formula. The last value set (or
+   returned) will be displayed in the cell.
+</Note>
+
+### setMetadata()
+
+Store custom metadata on the cell. Metadata is useful for tracking execution state, caching intermediate results, or storing debugging information.
+
+```typescript
+ctx.thisCell.setMetadata({ metadata: Record<string, any> }): void
+```
+
+**Parameters:**
+
+-  `metadata` - An object containing key-value pairs to store as metadata
+
+**Example:**
+
+```typescript
+// Store execution metadata
+ctx.thisCell.setMetadata({
+   metadata: {
+      lastRun: new Date().toISOString(),
+      executionTime: 1234,
+      model: "gpt-5-mini",
+      cost: 0.002,
+   },
+});
+
+// Store cache keys
+ctx.thisCell.setMetadata({
+   metadata: {
+      cacheKey: `linkedin_${ctx.thisRow.get("company_id")}`,
+      cachedAt: Date.now(),
+   },
+});
+```
+
+## Common Patterns
+
+### Idempotent Operations
+
+```typescript
+// Check if we've already processed this cell
+const currentValue = ctx.thisCell.get();
+
+if (currentValue) {
+   // Already processed, skip
+   return currentValue;
+}
+
+// Perform expensive operation
+const result = await services.company.linkedin.enrich({
+   url: ctx.thisRow.get("linkedin_url"),
+});
+
+ctx.thisCell.set(result.employeeCount);
+```
+
+### Tracking Execution Metadata
+
+```typescript
+const startTime = Date.now();
+
+try {
+   const result = await services.ai.generateObject({
+      prompt: "Analyze this company",
+      schema: mySchema,
+   });
+
+   const executionTime = Date.now() - startTime;
+
+   // Store result
+   ctx.thisCell.set(result.object);
+
+   // Track metadata
+   ctx.thisCell.setMetadata({
+      metadata: {
+         success: true,
+         executionTime,
+         model: "claude-sonnet-4-5-20250929",
+         timestamp: new Date().toISOString(),
+      },
+   });
+} catch (error) {
+   ctx.thisCell.setMetadata({
+      metadata: {
+         success: false,
+         error: error.message,
+         timestamp: new Date().toISOString(),
+      },
+   });
+
+   throw error;
+}
+```
+
+### Caching Expensive Operations
+
+```typescript
+// Generate a cache key based on inputs
+const cacheKey = `${ctx.thisRow.get("company_name")}_${ctx.thisRow.get("query")}`;
+
+// Check if we have a cached result
+const existingValue = ctx.thisCell.get();
+const metadata = ctx.thisCell.getMetadata?.();
+
+if (existingValue && metadata?.cacheKey === cacheKey) {
+   console.log("Using cached result");
+   return existingValue;
+}
+
+// Perform expensive operation
+const result = await services.ai.generateResearch({
+   query: ctx.thisRow.get("query"),
+});
+
+// Store result and cache metadata
+ctx.thisCell.set(result.content);
+ctx.thisCell.setMetadata({
+   metadata: {
+      cacheKey,
+      cachedAt: Date.now(),
+      cost: result.cost,
+   },
+});
+```
+
+### Progressive Enhancement
+
+```typescript
+// Start with a basic value
+ctx.thisCell.set("Processing...");
+
+// Perform operation
+const analysis = await services.ai.generateObject({
+   prompt: "Analyze this lead",
+   schema: z.object({
+      score: z.number(),
+      reason: z.string(),
+   }),
+});
+
+// Update with final result
+ctx.thisCell.set(analysis.object.score);
+
+// Store detailed info in metadata
+ctx.thisCell.setMetadata({
+   metadata: {
+      reason: analysis.object.reason,
+      analyzedAt: new Date().toISOString(),
+   },
+});
+```
+
+## Cell vs Row Operations
+
+<Tip>
+   **When to use `ctx.thisCell` vs `ctx.thisRow`:**
+
+-  Use `ctx.thisCell` when you need to:
+   -  Return a value from the current column formula
+   -  Store execution metadata specific to this cell
+   -  Check the current cell's value for idempotency
+
+-  Use `ctx.thisRow` when you need to:
+   -  Read or write values in other columns
+   -  Work with multiple fields at once
+   -  Navigate foreign key relationships
+
+</Tip>
+

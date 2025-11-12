@@ -1,0 +1,326 @@
+---
+title: "LinkedIn Services"
+description: "Find and enrich LinkedIn profiles with comprehensive professional data"
+icon: "linkedin"
+---
+
+## Find LinkedIn URL
+
+Search for a LinkedIn profile URL using various identifying parameters.
+
+### Method
+
+```typescript
+services.person.linkedin.findUrl(params)
+```
+
+### Parameters
+
+<ParamField path="name" type="string" optional>
+  Full name of the person
+</ParamField>
+
+<ParamField path="title" type="string" optional>
+  Job title or position
+</ParamField>
+
+<ParamField path="company" type="string" optional>
+  Current or past company name
+</ParamField>
+
+<ParamField path="keyword" type="string" optional>
+  Additional keywords to refine search
+</ParamField>
+
+<ParamField path="email" type="string" optional>
+  Email address associated with the profile
+</ParamField>
+
+### Returns
+
+Returns a `Promise<string | undefined>` containing the LinkedIn profile URL if found.
+
+### Example
+
+```typescript
+const linkedinUrl = await services.person.linkedin.findUrl({
+  name: "Sarah Johnson",
+  title: "Product Manager",
+  company: "Microsoft"
+});
+
+console.log(linkedinUrl); // "https://linkedin.com/in/sarahjohnson"
+```
+
+---
+
+## Enrich LinkedIn Profile
+
+Get comprehensive information from a LinkedIn profile including work experience, education, skills, and more.
+
+### Method
+
+```typescript
+services.person.linkedin.enrich(params)
+```
+
+### Parameters
+
+<ParamField path="url" type="string" required>
+  The LinkedIn profile URL to enrich
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with a comprehensive profile object containing:
+
+<ResponseField name="full_name" type="string">
+  Complete name of the person
+</ResponseField>
+
+<ResponseField name="name_first" type="string">
+  First name
+</ResponseField>
+
+<ResponseField name="name_last" type="string">
+  Last name
+</ResponseField>
+
+<ResponseField name="headline" type="string">
+  Professional headline from LinkedIn
+</ResponseField>
+
+<ResponseField name="job_title" type="string">
+  Current job title
+</ResponseField>
+
+<ResponseField name="company_id" type="number">
+  ID of current company
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Profile summary/about section
+</ResponseField>
+
+<ResponseField name="picture_url" type="string">
+  Profile picture URL
+</ResponseField>
+
+<ResponseField name="websites_linkedin" type="string">
+  The LinkedIn profile URL
+</ResponseField>
+
+<ResponseField name="follower_count" type="number">
+  Number of LinkedIn followers
+</ResponseField>
+
+<ResponseField name="connections_count" type="number">
+  Number of LinkedIn connections
+</ResponseField>
+
+<ResponseField name="skills" type="string[]">
+  Array of skills listed on the profile
+</ResponseField>
+
+<ResponseField name="location_raw_address" type="string">
+  Full location string
+</ResponseField>
+
+<ResponseField name="location_city" type="string">
+  City
+</ResponseField>
+
+<ResponseField name="location_state" type="string">
+  State or region
+</ResponseField>
+
+<ResponseField name="location_country" type="string">
+  Country name
+</ResponseField>
+
+<ResponseField name="experience" type="array">
+  Array of work experience entries
+  
+  <Expandable title="Experience Object Properties">
+    <ResponseField name="title" type="string">
+      Job title
+    </ResponseField>
+    <ResponseField name="company_name" type="string">
+      Company name
+    </ResponseField>
+    <ResponseField name="company_id" type="number">
+      Company ID
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Role description
+    </ResponseField>
+    <ResponseField name="date_from" type="string">
+      Start date
+    </ResponseField>
+    <ResponseField name="date_to" type="string | null">
+      End date (null if current)
+    </ResponseField>
+    <ResponseField name="duration" type="string">
+      Duration in human-readable format
+    </ResponseField>
+    <ResponseField name="duration_months" type="number">
+      Duration in months
+    </ResponseField>
+    <ResponseField name="location" type="string">
+      Job location
+    </ResponseField>
+    <ResponseField name="department" type="string">
+      Department or function
+    </ResponseField>
+    <ResponseField name="management_level" type="string">
+      Management level (e.g., "Senior", "Manager")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="education" type="array">
+  Array of education entries
+  
+  <Expandable title="Education Object Properties">
+    <ResponseField name="title" type="string">
+      Degree or program name
+    </ResponseField>
+    <ResponseField name="major" type="string">
+      Field of study
+    </ResponseField>
+    <ResponseField name="institution_url" type="string">
+      School LinkedIn URL
+    </ResponseField>
+    <ResponseField name="date_from" type="string | number">
+      Start year
+    </ResponseField>
+    <ResponseField name="date_to" type="string | number">
+      End year
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Additional details
+    </ResponseField>
+    <ResponseField name="activities_and_societies" type="string">
+      Extracurricular activities
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="certifications" type="array">
+  Professional certifications
+</ResponseField>
+
+<ResponseField name="languages" type="array">
+  Languages and proficiency levels
+</ResponseField>
+
+<ResponseField name="recommendations" type="array">
+  LinkedIn recommendations received
+</ResponseField>
+
+<ResponseField name="awards" type="array">
+  Awards and honors
+</ResponseField>
+
+<ResponseField name="courses" type="array">
+  Courses completed
+</ResponseField>
+
+<ResponseField name="member_publications" type="array">
+  Published works
+</ResponseField>
+
+<ResponseField name="member_patents" type="array">
+  Patents filed or granted
+</ResponseField>
+
+### Example
+
+```typescript
+const profile = await services.person.linkedin.enrich({
+  url: "https://linkedin.com/in/sarahjohnson"
+});
+
+// Access basic information
+console.log(`${profile.full_name} - ${profile.headline}`);
+console.log(`Location: ${profile.location_city}, ${profile.location_country}`);
+
+// Access work experience
+profile.experience?.forEach(job => {
+  console.log(`${job.title} at ${job.company_name}`);
+  console.log(`Duration: ${job.duration}`);
+  console.log(`Description: ${job.description}`);
+});
+
+// Access education
+profile.education?.forEach(edu => {
+  console.log(`${edu.title} - ${edu.major}`);
+});
+
+// Access skills
+console.log(`Skills: ${profile.skills?.join(", ")}`);
+```
+
+## Best Practices
+
+<Tip>
+  **Optimize Your Searches**: When using `findUrl`, provide as many parameters as possible to increase accuracy and reduce ambiguous results.
+</Tip>
+
+<Warning>
+  **Rate Limiting**: LinkedIn enrichment is resource-intensive. Cache results when possible and avoid duplicate requests for the same profile.
+</Warning>
+
+<Info>
+  **Data Freshness**: The `last_updated` field indicates when the profile was last refreshed. Consider re-enriching profiles that are older than 30 days for critical use cases.
+</Info>
+
+## Common Patterns
+
+### Find and Enrich in One Flow
+
+```typescript
+async function getFullProfile(name: string, company: string) {
+  // First, find the LinkedIn URL
+  const url = await services.person.linkedin.findUrl({
+    name,
+    company
+  });
+  
+  if (!url) {
+    throw new Error("Profile not found");
+  }
+  
+  // Then enrich the profile
+  const profile = await services.person.linkedin.enrich({ url });
+  
+  return profile;
+}
+
+const profile = await getFullProfile("John Doe", "Acme Corp");
+```
+
+### Extract Current Job Information
+
+```typescript
+const profile = await services.person.linkedin.enrich({ url });
+
+// Find current position (where date_to is null)
+const currentJob = profile.experience?.find(job => job.date_to === null);
+
+if (currentJob) {
+  console.log(`Current Role: ${currentJob.title}`);
+  console.log(`Company: ${currentJob.company_name}`);
+  console.log(`Started: ${currentJob.date_from}`);
+}
+```
+
+### Calculate Total Experience
+
+```typescript
+const profile = await services.person.linkedin.enrich({ url });
+
+console.log(`Total Experience: ${profile.total_experience_duration}`);
+console.log(`Total Months: ${profile.total_experience_duration_months}`);
+```
+

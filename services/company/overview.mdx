@@ -1,0 +1,89 @@
+---
+title: "Company Services"
+description: "Discover and enrich company data, employees, and career information"
+icon: "building"
+---
+
+## Overview
+
+Company services provide comprehensive tools for discovering company information, enriching company profiles, finding employees, and accessing career pages and job postings.
+
+## Available Services
+
+<CardGroup cols={2}>
+   <Card title="LinkedIn Services" icon="linkedin" href="/services/company/linkedin">
+      Find and enrich company LinkedIn profiles with detailed data
+   </Card>
+   <Card title="Employee Discovery" icon="users" href="/services/company/employees">
+      Get all employees from a company
+   </Card>
+   <Card title="Career Services" icon="briefcase" href="/services/company/careers">
+      Find career pages and scrape job postings
+   </Card>
+</CardGroup>
+
+## Common Use Cases
+
+### Finding a Company
+
+```typescript
+const companyUrl = await services.company.linkedin.findUrl({
+   name: "Acme Corporation",
+   website: "acme.com",
+});
+```
+
+### Enriching Company Data
+
+```typescript
+// Basic enrichment
+const basicData = await services.company.linkedin.enrich({
+   url: "https://linkedin.com/company/acme",
+});
+
+// Extended enrichment (includes financials, reviews, etc.)
+const extendedData = await services.company.linkedin.enrich({
+   url: "https://linkedin.com/company/acme",
+   enrichLevel: "extended",
+});
+```
+
+### Getting Company Employees
+
+```typescript
+const employees = await services.company.getEmployees({
+   linkedinCompanyUrl: "https://linkedin.com/company/acme",
+   website: "acme.com",
+});
+
+console.log(`Found ${employees.length} employees`);
+```
+
+### Finding Job Postings
+
+```typescript
+// Find career page
+const careerPage = await services.company.careers.findPage({
+   domain: "acme.com",
+});
+
+// Scrape jobs from career page
+const jobs = await services.company.careers.scrapeJobs({
+   url: careerPage.url,
+   recent: "month",
+});
+```
+
+## Data Coverage
+
+<Info>
+   Company data includes basic information (name, industry, size), extended data (financials, reviews, employee
+   analytics), social media presence, technologies used, and more.
+</Info>
+
+## Enrichment Levels
+
+Company enrichment supports two levels:
+
+-  **Basic**: Core company information, social links, and recent updates
+-  **Extended**: Everything in basic plus financials, employee analytics, reviews, funding rounds, and more

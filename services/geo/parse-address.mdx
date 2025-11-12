@@ -1,0 +1,515 @@
+---
+title: "Parse Address"
+description: "Parse addresses into structured components with geocoding"
+icon: "map-location-dot"
+---
+
+## Parse Address
+
+Parse a full address string into structured components and obtain geographic coordinates (latitude/longitude).
+
+### Method
+
+```typescript
+services.geo.parseAddress(params);
+```
+
+### Parameters
+
+<ParamField path="address" type="string" required>
+   The full address string to parse
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with:
+
+<ResponseField name="streetNumber" type="string" required>
+   The street number
+</ResponseField>
+
+<ResponseField name="route" type="string" required>
+   The street name/route
+</ResponseField>
+
+<ResponseField name="city" type="string" required>
+   The city name
+</ResponseField>
+
+<ResponseField name="state" type="string" required>
+   The state or province
+</ResponseField>
+
+<ResponseField name="postalCode" type="string" required>
+   The postal/ZIP code
+</ResponseField>
+
+<ResponseField name="country" type="string" required>
+   The country name
+</ResponseField>
+
+<ResponseField name="lat" type="number" required>
+   Latitude coordinate
+</ResponseField>
+
+<ResponseField name="lng" type="number" required>
+   Longitude coordinate
+</ResponseField>
+
+## Examples
+
+### Basic Address Parsing
+
+```typescript
+const result = await services.geo.parseAddress({
+   address: "1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+});
+
+console.log(result);
+// {
+//   streetNumber: "1600",
+//   route: "Amphitheatre Parkway",
+//   city: "Mountain View",
+//   state: "CA",
+//   postalCode: "94043",
+//   country: "USA",
+//   lat: 37.4224764,
+//   lng: -122.0842499
+// }
+```
+
+### International Address
+
+```typescript
+const result = await services.geo.parseAddress({
+   address: "10 Downing Street, London SW1A 2AA, United Kingdom",
+});
+
+console.log(result);
+// {
+//   streetNumber: "10",
+//   route: "Downing Street",
+//   city: "London",
+//   state: "England",
+//   postalCode: "SW1A 2AA",
+//   country: "United Kingdom",
+//   lat: 51.5033635,
+//   lng: -0.1276248
+// }
+```
+
+## Use Cases
+
+### Validate and Standardize Addresses
+
+```typescript
+async function standardizeAddress(rawAddress: string) {
+   try {
+      const parsed = await services.geo.parseAddress({
+         address: rawAddress,
+      });
+
+      // Create standardized format
+      const standardized = `${parsed.streetNumber} ${parsed.route}, ${parsed.city}, ${parsed.state} ${parsed.postalCode}, ${parsed.country}`;
+
+      return {
+         valid: true,
+         original: rawAddress,
+         standardized,
+         components: parsed,
+      };
+   } catch (error) {
+      return {
+         valid: false,
+         original: rawAddress,
+         error: "Unable to parse address",
+      };
+   }
+}
+
+const result = await standardizeAddress("1600 amphitheatre pkwy mountain view ca");
+```
+
+### Calculate Distance Between Addresses
+
+```typescript
+async function calculateDistance(address1: string, address2: string) {
+   const parsed1 = await services.geo.parseAddress({ address: address1 });
+   const parsed2 = await services.geo.parseAddress({ address: address2 });
+
+   // Haversine formula for distance
+   const R = 6371; // Earth's radius in km
+   const dLat = ((parsed2.lat - parsed1.lat) * Math.PI) / 180;
+   const dLon = ((parsed2.lng - parsed1.lng) * Math.PI) / 180;
+
+   const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((parsed1.lat * Math.PI) / 180) *
+         Math.cos((parsed2.lat * Math.PI) / 180) *
+         Math.sin(dLon / 2) *
+         Math.sin(dLon / 2);
+
+   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+   const distance = R * c;
+
+   return {
+      distanceKm: distance,
+      distanceMiles: distance * 0.621371,
+      from: {
+         address: address1,
+         coordinates: { lat: parsed1.lat, lng: parsed1.lng },
+      },
+      to: {
+         address: address2,
+         coordinates: { lat: parsed2.lat, lng: parsed2.lng },
+      },
+   };
+}
+
+const distance = await calculateDistance(
+   "1600 Amphitheatre Parkway, Mountain View, CA",
+   "1 Apple Park Way, Cupertino, CA"
+);
+console.log(`Distance: ${distance.distanceMiles.toFixed(2)} miles`);
+```
+
+### Extract Location Data
+
+```typescript
+async function extractLocationData(address: string) {
+   const parsed = await services.geo.parseAddress({ address });
+
+   return {
+      address: {
+         full: address,
+         street: `${parsed.streetNumber} ${parsed.route}`,
+         city: parsed.city,
+         state: parsed.state,
+         zip: parsed.postalCode,
+         country: parsed.country,
+      },
+      coordinates: {
+         latitude: parsed.lat,
+         longitude: parsed.lng,
+      },
+      // Generate Google Maps link
+      mapsUrl: `https://www.google.com/maps?q=${parsed.lat},${parsed.lng}`,
+   };
+}
+```
+
+### Batch Address Processing
+
+```typescript
+async function processAddresses(addresses: string[]) {
+   const results = await Promise.all(
+      addresses.map(async (address) => {
+         try {
+            const parsed = await services.geo.parseAddress({ address });
+            return {
+               success: true,
+               original: address,
+               parsed,
+            };
+         } catch (error) {
+            return {
+               success: false,
+               original: address,
+               error: error.message,
+            };
+         }
+      })
+   );
+
+   const successful = results.filter((r) => r.success);
+   const failed = results.filter((r) => !r.success);
+
+   return {
+      total: addresses.length,
+      successful: successful.length,
+      failed: failed.length,
+      results,
+   };
+}
+
+const addresses = [
+   "1600 Amphitheatre Parkway, Mountain View, CA 94043",
+   "1 Apple Park Way, Cupertino, CA 95014",
+   "350 Fifth Avenue, New York, NY 10118",
+];
+
+const processed = await processAddresses(addresses);
+console.log(`Processed ${processed.successful}/${processed.total} addresses`);
+```
+
+### Find Nearby Locations
+
+```typescript
+async function findNearbyLocations(
+   centerAddress: string,
+   locations: Array<{ name: string; address: string }>,
+   maxDistanceKm: number
+) {
+   const center = await services.geo.parseAddress({ address: centerAddress });
+
+   const locationsWithDistance = await Promise.all(
+      locations.map(async (location) => {
+         const parsed = await services.geo.parseAddress({ address: location.address });
+
+         // Calculate distance
+         const R = 6371;
+         const dLat = ((parsed.lat - center.lat) * Math.PI) / 180;
+         const dLon = ((parsed.lng - center.lng) * Math.PI) / 180;
+         const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((center.lat * Math.PI) / 180) *
+               Math.cos((parsed.lat * Math.PI) / 180) *
+               Math.sin(dLon / 2) *
+               Math.sin(dLon / 2);
+         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+         const distance = R * c;
+
+         return {
+            ...location,
+            distance,
+            coordinates: { lat: parsed.lat, lng: parsed.lng },
+         };
+      })
+   );
+
+   // Filter by distance and sort
+   const nearby = locationsWithDistance
+      .filter((loc) => loc.distance <= maxDistanceKm)
+      .sort((a, b) => a.distance - b.distance);
+
+   return nearby;
+}
+```
+
+### Geocode for Mapping
+
+```typescript
+async function prepareForMap(addresses: string[]) {
+   const markers = await Promise.all(
+      addresses.map(async (address) => {
+         const parsed = await services.geo.parseAddress({ address });
+
+         return {
+            position: {
+               lat: parsed.lat,
+               lng: parsed.lng,
+            },
+            title: `${parsed.streetNumber} ${parsed.route}`,
+            description: `${parsed.city}, ${parsed.state} ${parsed.postalCode}`,
+            fullAddress: address,
+         };
+      })
+   );
+
+   return markers;
+}
+
+// Use with Google Maps, Mapbox, etc.
+const markers = await prepareForMap([
+   "1600 Amphitheatre Parkway, Mountain View, CA",
+   "1 Apple Park Way, Cupertino, CA",
+]);
+```
+
+### Address Verification
+
+```typescript
+async function verifyAddress(address: string) {
+   try {
+      const parsed = await services.geo.parseAddress({ address });
+
+      // Check if all required components are present
+      const hasAllComponents =
+         parsed.streetNumber && parsed.route && parsed.city && parsed.state && parsed.postalCode && parsed.country;
+
+      return {
+         valid: hasAllComponents,
+         confidence: hasAllComponents ? "high" : "low",
+         parsed,
+         issues: !hasAllComponents ? ["Missing address components"] : [],
+      };
+   } catch (error) {
+      return {
+         valid: false,
+         confidence: "none",
+         error: "Unable to parse address",
+         issues: ["Invalid or unrecognized address format"],
+      };
+   }
+}
+```
+
+### Extract City/State from Full Address
+
+```typescript
+async function extractCityState(fullAddress: string) {
+   const parsed = await services.geo.parseAddress({ address: fullAddress });
+
+   return {
+      city: parsed.city,
+      state: parsed.state,
+      country: parsed.country,
+      cityState: `${parsed.city}, ${parsed.state}`,
+   };
+}
+
+const location = await extractCityState("123 Main St, San Francisco, CA 94102");
+console.log(location.cityState); // "San Francisco, CA"
+```
+
+### Territory Assignment
+
+```typescript
+async function assignTerritory(customerAddress: string, territories: any[]) {
+   const parsed = await services.geo.parseAddress({ address: customerAddress });
+
+   // Find matching territory by state or coordinates
+   const territory = territories.find((t) => {
+      if (t.states?.includes(parsed.state)) {
+         return true;
+      }
+      // Could also check if coordinates fall within territory bounds
+      return false;
+   });
+
+   return {
+      customer: {
+         address: customerAddress,
+         city: parsed.city,
+         state: parsed.state,
+         coordinates: { lat: parsed.lat, lng: parsed.lng },
+      },
+      territory: territory || null,
+   };
+}
+```
+
+## Best Practices
+
+<Tip>
+   **Complete Addresses**: Provide as complete an address as possible for best results. Include street number, street
+   name, city, state, and postal code.
+</Tip>
+
+<Warning>
+   **Address Validation**: Not all address strings can be parsed. Always handle potential errors and validate the
+   results.
+</Warning>
+
+<Info>
+   **Geocoding Accuracy**: Coordinates are typically accurate to the building or street level, depending on the address
+   specificity.
+</Info>
+
+## Error Handling
+
+```typescript
+async function parseAddressSafely(address: string) {
+   try {
+      const result = await services.geo.parseAddress({ address });
+
+      // Validate result
+      if (!result.lat || !result.lng) {
+         throw new Error("No coordinates returned");
+      }
+
+      return {
+         success: true,
+         data: result,
+      };
+   } catch (error) {
+      console.error(`Failed to parse address: ${address}`, error);
+      return {
+         success: false,
+         error: error.message,
+         address,
+      };
+   }
+}
+```
+
+## Integration Examples
+
+```typescript
+// Combine with company enrichment
+async function getCompanyLocation(companyUrl: string) {
+   const company = await services.company.linkedin.enrich({ url: companyUrl });
+
+   if (company.location_hq_raw_address) {
+      const location = await services.geo.parseAddress({
+         address: company.location_hq_raw_address,
+      });
+
+      return {
+         company: company.company_name,
+         address: company.location_hq_raw_address,
+         coordinates: {
+            lat: location.lat,
+            lng: location.lng,
+         },
+         city: location.city,
+         state: location.state,
+         country: location.country,
+      };
+   }
+
+   return null;
+}
+```
+
+## Common Patterns
+
+### Address Normalization
+
+```typescript
+async function normalizeAddress(address: string) {
+   const parsed = await services.geo.parseAddress({ address });
+
+   // Create normalized format
+   return {
+      line1: `${parsed.streetNumber} ${parsed.route}`,
+      line2: null,
+      city: parsed.city,
+      state: parsed.state,
+      postalCode: parsed.postalCode,
+      country: parsed.country,
+      coordinates: {
+         lat: parsed.lat,
+         lng: parsed.lng,
+      },
+   };
+}
+```
+
+### Duplicate Detection
+
+```typescript
+async function findDuplicateAddresses(addresses: string[]) {
+   const parsed = await Promise.all(addresses.map((addr) => services.geo.parseAddress({ address: addr })));
+
+   // Group by coordinates (within small threshold)
+   const groups: any[] = [];
+   const threshold = 0.0001; // ~10 meters
+
+   parsed.forEach((p, i) => {
+      const existing = groups.find((g) => Math.abs(g.lat - p.lat) < threshold && Math.abs(g.lng - p.lng) < threshold);
+
+      if (existing) {
+         existing.addresses.push(addresses[i]);
+      } else {
+         groups.push({
+            lat: p.lat,
+            lng: p.lng,
+            addresses: [addresses[i]],
+         });
+      }
+   });
+
+   return groups.filter((g) => g.addresses.length > 1);
+}
+```

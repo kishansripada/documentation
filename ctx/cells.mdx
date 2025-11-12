@@ -1,0 +1,325 @@
+---
+title: "Cells & Rows"
+description: "Direct access to any cell or row by ID or value"
+icon: "grip"
+---
+
+## Overview
+
+The `ctx` object provides low-level methods for directly accessing and manipulating cells and rows by their IDs or by querying for specific values. These methods are useful when you need precise control over individual cells or when working with dynamic references.
+
+## Row Methods
+
+### ctx.row()
+
+Get a row's UUID by using a row selector.
+
+```typescript
+ctx.row({ sel: RowSelector }): string
+```
+
+**Row Selector:**
+
+A row can be selected by:
+
+-  `id` - The UUID of the row
+-  `index` - The numeric index of the row (0-based)
+-  `label` - A label assigned to the row
+
+**Example:**
+
+```typescript
+// Get row by index
+const rowId = ctx.row({ sel: { index: 0 } });
+
+// Get row by ID
+const rowId = ctx.row({ sel: { id: "123e4567-e89b-12d3-a456-426614174000" } });
+
+// Get row by label
+const rowId = ctx.row({ sel: { label: "header_row" } });
+```
+
+### ctx.getRowByValue()
+
+Find a single row where a column matches a specific value.
+
+```typescript
+ctx.getRowByValue(columnName: string, value: any): Promise<Row | null>
+```
+
+**Parameters:**
+
+-  `columnName` - The name of the column to search
+-  `value` - The value to match
+
+**Returns:** A `Row` object if found, or `null` if no match
+
+**Example:**
+
+```typescript
+// Find a company by name
+const company = await ctx.getRowByValue("name", "Acme Corp");
+
+if (company) {
+   console.log(`Found company at index ${company.index}`);
+   console.log(`Website: ${company.get("website")}`);
+} else {
+   console.log("Company not found");
+}
+```
+
+### ctx.setRowValues()
+
+Set multiple values on a specific row by its ID.
+
+```typescript
+ctx.setRowValues(rowId: string, values: Record<string, any>): void
+```
+
+**Parameters:**
+
+-  `rowId` - The UUID of the row to update
+-  `values` - An object mapping column names to new values
+
+**Example:**
+
+```typescript
+const companyRow = await ctx.getRowByValue("name", "Acme Corp");
+
+if (companyRow) {
+   ctx.setRowValues(companyRow.id, {
+      status: "verified",
+      last_updated: new Date().toISOString(),
+      employee_count: 500,
+   });
+}
+```
+
+## Column Methods
+
+### ctx.col()
+
+Get a column's UUID by its name.
+
+```typescript
+ctx.col(columnName: string): string
+```
+
+**Parameters:**
+
+-  `columnName` - The name of the column
+
+**Returns:** The UUID of the column
+
+**Example:**
+
+```typescript
+const emailColId = ctx.col("email");
+const statusColId = ctx.col("status");
+
+console.log(`Email column ID: ${emailColId}`);
+```
+
+## Cell Methods
+
+### ctx.setCell()
+
+Set the value of a specific cell by row and column IDs.
+
+```typescript
+ctx.setCell({ rowId: string, colId: string, value: any }): void
+```
+
+**Parameters:**
+
+-  `rowId` - The UUID of the row
+-  `colId` - The UUID of the column
+-  `value` - The new value to set
+
+**Example:**
+
+```typescript
+const rowId = ctx.row({ sel: { index: 5 } });
+const colId = ctx.col("status");
+
+ctx.setCell({
+   rowId,
+   colId,
+   value: "completed",
+});
+```
+
+### ctx.setCellMetadata()
+
+Set metadata on a specific cell.
+
+```typescript
+ctx.setCellMetadata({
+   rowId: string,
+   colId: string,
+   metadata: Record<string, any>
+}): void
+```
+
+**Parameters:**
+
+-  `rowId` - The UUID of the row
+-  `colId` - The UUID of the column
+-  `metadata` - An object containing metadata key-value pairs
+
+**Example:**
+
+```typescript
+const rowId = ctx.row({ sel: { index: 0 } });
+const colId = ctx.col("ai_analysis");
+
+ctx.setCellMetadata({
+   rowId,
+   colId,
+   metadata: {
+      model: "gpt-5-mini",
+      cost: 0.002,
+      executionTime: 1234,
+      timestamp: new Date().toISOString(),
+   },
+});
+```
+
+## Context Properties
+
+### ctx.rowId
+
+The UUID of the currently executing row.
+
+```typescript
+const currentRowId = ctx.rowId;
+```
+
+### ctx.colId
+
+The UUID of the currently executing column.
+
+```typescript
+const currentColId = ctx.colId;
+```
+
+**Example:**
+
+```typescript
+// Store metadata on the current cell
+ctx.setCellMetadata({
+   rowId: ctx.rowId,
+   colId: ctx.colId,
+   metadata: {
+      lastRun: new Date().toISOString(),
+   },
+});
+```
+
+## Common Patterns
+
+### Dynamic Cell Updates
+
+```typescript
+// Update a specific cell based on dynamic logic
+const targetRowIndex = 10;
+const targetColumn = "score";
+
+const rowId = ctx.row({ sel: { index: targetRowIndex } });
+const colId = ctx.col(targetColumn);
+
+ctx.setCell({
+   rowId,
+   colId,
+   value: 95,
+});
+```
+
+### Batch Cell Operations
+
+```typescript
+// Update multiple cells in a specific column
+const statusColId = ctx.col("status");
+
+for (let i = 0; i < 10; i++) {
+   const rowId = ctx.row({ sel: { index: i } });
+
+   ctx.setCell({
+      rowId,
+      colId: statusColId,
+      value: "processed",
+   });
+}
+```
+
+### Cross-Reference Lookups
+
+```typescript
+// Find a related record and copy data
+const relatedCompany = await ctx.getRowByValue("name", ctx.thisRow.get("company_name"));
+
+if (relatedCompany) {
+   ctx.thisRow.set({
+      company_id: relatedCompany.id,
+      company_website: relatedCompany.get("website"),
+      company_industry: relatedCompany.get("industry"),
+   });
+} else {
+   console.log("Related company not found");
+}
+```
+
+### Metadata Tracking
+
+```typescript
+// Track execution metadata for the current cell
+ctx.setCellMetadata({
+   rowId: ctx.rowId,
+   colId: ctx.colId,
+   metadata: {
+      executedAt: new Date().toISOString(),
+      executionCount: (existingMetadata?.executionCount || 0) + 1,
+      lastError: null,
+   },
+});
+```
+
+### Conditional Row Updates
+
+```typescript
+// Find and update rows based on criteria
+const pendingCompanies = await ctx.sheet("Companies").getRowsByValue("status", "pending");
+
+for (const company of pendingCompanies) {
+   const website = company.get("website");
+
+   if (website) {
+      // Update using row ID
+      ctx.setRowValues(company.id, {
+         status: "processing",
+         started_at: new Date().toISOString(),
+      });
+
+      // Perform enrichment...
+   }
+}
+```
+
+## When to Use These Methods
+
+<Tip>
+   **Use high-level methods when possible:**
+
+-  Use `ctx.thisRow.get()` and `ctx.thisRow.set()` for current row operations
+-  Use `ctx.sheet().addRow()` for creating rows in other sheets
+-  Use `ctx.thisRow.getRelatedRows()` for foreign key relationships
+
+**Use low-level methods when you need:**
+
+-  Direct cell access by ID
+-  Dynamic row/column references
+-  Batch operations across multiple rows
+-  Metadata management on specific cells
+
+</Tip>
+

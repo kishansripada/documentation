@@ -1,0 +1,441 @@
+---
+title: "Generate Research"
+description: "Create comprehensive research reports with web access"
+icon: "magnifying-glass-chart"
+---
+
+## Generate Research Report
+
+Conduct deep research on any topic with web access and generate comprehensive, well-sourced reports.
+
+<Warning>
+  This is a premium feature that performs extensive web research. It's more expensive than basic text generation but provides thorough, well-researched content.
+</Warning>
+
+### Method
+
+```typescript
+services.ai.generateResearch(params)
+```
+
+### Parameters
+
+<ParamField path="query" type="string" required>
+  The research question or topic to investigate
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with:
+
+<ResponseField name="content" type="string" required>
+  The comprehensive research report
+</ResponseField>
+
+<ResponseField name="usage" type="object" required>
+  Token usage statistics
+  
+  <Expandable title="Usage Properties">
+    <ResponseField name="prompt_tokens" type="number">
+      Number of tokens in the prompts
+    </ResponseField>
+    <ResponseField name="completion_tokens" type="number">
+      Number of tokens in the completions
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cost" type="number" required>
+  The cost in USD for this research request
+</ResponseField>
+
+## Examples
+
+### Basic Research
+
+```typescript
+const result = await services.ai.generateResearch({
+  query: "What are the latest trends in artificial intelligence for 2024?"
+});
+
+console.log(result.content);
+console.log(`Cost: $${result.cost}`);
+console.log(`Tokens used: ${result.usage.prompt_tokens + result.usage.completion_tokens}`);
+```
+
+### Market Research
+
+```typescript
+const result = await services.ai.generateResearch({
+  query: "Analyze the current state of the electric vehicle market, including major players, market share, and growth projections"
+});
+
+console.log(result.content);
+// Comprehensive report with current market data
+```
+
+### Competitive Analysis
+
+```typescript
+const result = await services.ai.generateResearch({
+  query: "Compare the features, pricing, and market positioning of the top 5 CRM platforms in 2024"
+});
+
+console.log(result.content);
+```
+
+## Use Cases
+
+### Industry Analysis
+
+```typescript
+async function analyzeIndustry(industry: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Provide a comprehensive analysis of the ${industry} industry including:
+      - Current market size and growth rate
+      - Major players and market share
+      - Key trends and innovations
+      - Challenges and opportunities
+      - Future outlook
+    `
+  });
+  
+  return {
+    report: result.content,
+    cost: result.cost,
+    timestamp: new Date().toISOString()
+  };
+}
+
+const fintech = await analyzeIndustry("fintech");
+```
+
+### Technology Research
+
+```typescript
+async function researchTechnology(technology: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Research ${technology} and provide:
+      - Overview and how it works
+      - Current state of development
+      - Real-world applications and use cases
+      - Leading companies and projects
+      - Advantages and limitations
+      - Future potential
+    `
+  });
+  
+  return result.content;
+}
+
+const quantumComputing = await researchTechnology("quantum computing");
+```
+
+### Competitor Research
+
+```typescript
+async function researchCompetitor(companyName: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Research ${companyName} and provide detailed information on:
+      - Company background and history
+      - Products and services
+      - Business model and revenue streams
+      - Market position and competitive advantages
+      - Recent news and developments
+      - Strengths and weaknesses
+    `
+  });
+  
+  return result.content;
+}
+
+const competitor = await researchCompetitor("Salesforce");
+```
+
+### Investment Research
+
+```typescript
+async function investmentResearch(company: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Provide investment analysis for ${company}:
+      - Financial performance and metrics
+      - Growth trajectory
+      - Competitive position
+      - Risk factors
+      - Industry trends affecting the company
+      - Analyst opinions and price targets
+    `
+  });
+  
+  return {
+    analysis: result.content,
+    cost: result.cost,
+    date: new Date().toISOString()
+  };
+}
+```
+
+### Product Research
+
+```typescript
+async function researchProduct(productCategory: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Research the best ${productCategory} in 2024:
+      - Top products and brands
+      - Key features to consider
+      - Price ranges
+      - User reviews and ratings
+      - Pros and cons of each
+      - Recommendations for different use cases
+    `
+  });
+  
+  return result.content;
+}
+
+const laptops = await researchProduct("business laptops");
+```
+
+### Academic Research
+
+```typescript
+async function academicResearch(topic: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Provide an academic-style research summary on ${topic}:
+      - Current state of research
+      - Key findings and theories
+      - Notable researchers and institutions
+      - Recent publications and studies
+      - Open questions and future directions
+      - Practical applications
+    `
+  });
+  
+  return result.content;
+}
+```
+
+### Regulatory Research
+
+```typescript
+async function researchRegulations(industry: string, region: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Research current regulations affecting the ${industry} industry in ${region}:
+      - Key regulatory bodies and frameworks
+      - Current regulations and compliance requirements
+      - Recent changes and updates
+      - Upcoming regulatory changes
+      - Impact on businesses
+      - Best practices for compliance
+    `
+  });
+  
+  return result.content;
+}
+
+const gdpr = await researchRegulations("data privacy", "European Union");
+```
+
+### Trend Analysis
+
+```typescript
+async function analyzeTrends(topic: string, timeframe: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Analyze trends in ${topic} over the ${timeframe}:
+      - Historical context
+      - Current trends and patterns
+      - Driving factors
+      - Impact and implications
+      - Future predictions
+      - Expert opinions
+    `
+  });
+  
+  return result.content;
+}
+
+const remoteWork = await analyzeTrends("remote work adoption", "past 5 years");
+```
+
+### Due Diligence
+
+```typescript
+async function dueDiligence(company: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Conduct due diligence research on ${company}:
+      - Corporate structure and ownership
+      - Financial health and stability
+      - Legal and regulatory compliance
+      - Reputation and public perception
+      - Key personnel and leadership
+      - Partnerships and relationships
+      - Potential risks and red flags
+    `
+  });
+  
+  return {
+    report: result.content,
+    cost: result.cost,
+    completedAt: new Date()
+  };
+}
+```
+
+### Market Entry Research
+
+```typescript
+async function marketEntryResearch(product: string, market: string) {
+  const result = await services.ai.generateResearch({
+    query: `
+      Research market entry strategy for ${product} in ${market}:
+      - Market size and growth potential
+      - Target customer segments
+      - Competitive landscape
+      - Regulatory requirements
+      - Distribution channels
+      - Pricing strategies
+      - Marketing approaches
+      - Potential challenges and risks
+    `
+  });
+  
+  return result.content;
+}
+
+const strategy = await marketEntryResearch("SaaS CRM", "Southeast Asia");
+```
+
+## Best Practices
+
+<Tip>
+  **Specific Questions**: The more specific your research query, the more focused and useful the report will be. Include specific aspects you want covered.
+</Tip>
+
+<Warning>
+  **Cost Management**: Research reports are expensive due to extensive web searching and analysis. Use them for important research needs, not casual questions.
+</Warning>
+
+<Info>
+  **Report Quality**: Research reports include citations and sources from the web, making them more reliable than standard text generation for factual information.
+</Info>
+
+## Cost Optimization
+
+```typescript
+// For quick facts, use generateText with web search (cheaper)
+const quickAnswer = await services.ai.generateText({
+  prompt: "What is the current market cap of Apple?",
+  model: "gpt-5-mini",
+  enableWebSearch: true
+});
+
+// For comprehensive research, use generateResearch
+const fullReport = await services.ai.generateResearch({
+  query: "Comprehensive analysis of Apple's financial performance and market position"
+});
+```
+
+## Combining with Other Services
+
+```typescript
+// Research a company and enrich with LinkedIn data
+async function comprehensiveCompanyResearch(companyName: string) {
+  // Get LinkedIn data
+  const linkedinUrl = await services.company.linkedin.findUrl({
+    name: companyName
+  });
+  
+  const companyData = await services.company.linkedin.enrich({
+    url: linkedinUrl!,
+    enrichLevel: "extended"
+  });
+  
+  // Get web research
+  const research = await services.ai.generateResearch({
+    query: `
+      Research ${companyName} focusing on:
+      - Recent news and developments
+      - Market perception and reputation
+      - Strategic initiatives
+      - Competitive positioning
+    `
+  });
+  
+  return {
+    linkedinData: companyData,
+    webResearch: research.content,
+    totalCost: research.cost
+  };
+}
+```
+
+## Monitoring Costs
+
+```typescript
+async function researchWithBudget(query: string, maxCost: number) {
+  console.log(`Starting research with max budget: $${maxCost}`);
+  
+  const result = await services.ai.generateResearch({ query });
+  
+  console.log(`Research completed. Cost: $${result.cost}`);
+  
+  if (result.cost > maxCost) {
+    console.warn(`Warning: Cost exceeded budget by $${result.cost - maxCost}`);
+  }
+  
+  return {
+    content: result.content,
+    cost: result.cost,
+    withinBudget: result.cost <= maxCost
+  };
+}
+```
+
+## Error Handling
+
+```typescript
+async function researchSafely(query: string) {
+  try {
+    const result = await services.ai.generateResearch({ query });
+    
+    if (!result.content || result.content.length < 100) {
+      throw new Error("Research report too short or empty");
+    }
+    
+    return {
+      success: true,
+      report: result.content,
+      cost: result.cost
+    };
+  } catch (error) {
+    console.error("Research failed:", error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+```
+
+## Report Structure
+
+Research reports typically include:
+
+- **Executive Summary**: Key findings and conclusions
+- **Introduction**: Context and scope of research
+- **Main Body**: Detailed analysis organized by topic
+- **Data and Statistics**: Current figures and trends
+- **Sources**: Citations and references
+- **Conclusion**: Summary and implications
+
+The AI automatically structures the report based on your query and the information found.
+

@@ -1,0 +1,71 @@
+---
+title: "Person Services"
+description: "Find and enrich LinkedIn profiles and contact information"
+icon: "user"
+---
+
+## Overview
+
+Person services provide comprehensive tools for discovering and enriching individual profiles, primarily focused on LinkedIn data and contact information discovery.
+
+## Available Services
+
+<CardGroup cols={2}>
+   <Card title="LinkedIn Services" icon="linkedin" href="/services/person/linkedin">
+      Find and enrich LinkedIn profiles with detailed information
+   </Card>
+   <Card title="Contact Services" icon="address-book" href="/services/person/contact">
+      Get verified email addresses and phone numbers
+   </Card>
+</CardGroup>
+
+## Common Use Cases
+
+### Finding a LinkedIn Profile
+
+```typescript
+const url = await services.person.linkedin.findUrl({
+   name: "Jane Smith",
+   company: "Tech Corp",
+   title: "Software Engineer",
+});
+```
+
+### Enriching Profile Data
+
+```typescript
+const profile = await services.person.linkedin.enrich({
+   url: "https://linkedin.com/in/janesmith",
+});
+
+console.log(profile.full_name);
+console.log(profile.headline);
+console.log(profile.experience);
+```
+
+### Getting Contact Information
+
+```typescript
+const contact = await services.person.contact.get({
+   linkedinUrl: "https://linkedin.com/in/janesmith",
+   required: ["email", "phone"],
+});
+
+// Access work emails (best quality)
+console.log(contact.work_emails);
+
+// Access personal emails
+console.log(contact.personal_emails);
+```
+
+## Data Quality
+
+<Tip>
+   All person data is regularly updated and validated. LinkedIn profiles include timestamps indicating when data was
+   last refreshed.
+</Tip>
+
+<Warning>
+   Always respect privacy laws and regulations when using contact information. Ensure you have proper consent and legal
+   basis for contacting individuals.
+</Warning>

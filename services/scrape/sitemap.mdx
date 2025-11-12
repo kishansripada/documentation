@@ -1,0 +1,383 @@
+---
+title: "Sitemap Discovery"
+description: "Find and rank all pages on a domain by relevance"
+icon: "sitemap"
+---
+
+## Find Sitemap URLs
+
+Discover all pages on a domain and rank them by relevance to specified keywords. This is useful for finding the best page to scrape for specific information.
+
+### Method
+
+```typescript
+services.scrape.sitemap(params)
+```
+
+### Parameters
+
+<ParamField path="domain" type="string" required>
+  The domain to search (e.g., "example.com")
+</ParamField>
+
+<ParamField path="keywords" type="string[]" required>
+  Array of keywords to rank pages by relevance
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with an array of page objects ranked by relevance:
+
+<ResponseField name="url" type="string" required>
+  The page URL
+</ResponseField>
+
+<ResponseField name="title" type="string" optional>
+  Page title
+</ResponseField>
+
+<ResponseField name="description" type="string" optional>
+  Page meta description
+</ResponseField>
+
+<Note>
+  Results are automatically ranked by how well they match the provided keywords, with the most relevant pages first.
+</Note>
+
+## Examples
+
+### Find Relevant Pages
+
+```typescript
+const pages = await services.scrape.sitemap({
+  domain: "stripe.com",
+  keywords: ["API", "documentation", "integration"]
+});
+
+// Pages are ranked by relevance
+console.log("Most relevant pages:");
+pages.slice(0, 5).forEach((page, i) => {
+  console.log(`${i + 1}. ${page.title}`);
+  console.log(`   ${page.url}`);
+  console.log(`   ${page.description}`);
+});
+```
+
+### Find Specific Page Type
+
+```typescript
+const pricingPages = await services.scrape.sitemap({
+  domain: "saas-company.com",
+  keywords: ["pricing", "plans", "cost"]
+});
+
+// Get the best match
+const bestMatch = pricingPages[0];
+console.log(`Best pricing page: ${bestMatch.url}`);
+```
+
+## Use Cases
+
+### Find Documentation Pages
+
+```typescript
+async function findDocs(domain: string, topic: string) {
+  const pages = await services.scrape.sitemap({
+    domain,
+    keywords: ["documentation", "docs", "guide", topic]
+  });
+  
+  // Return top 5 most relevant
+  return pages.slice(0, 5).map(page => ({
+    title: page.title,
+    url: page.url,
+    description: page.description
+  }));
+}
+
+const authDocs = await findDocs("stripe.com", "authentication");
+authDocs.forEach(doc => {
+  console.log(`${doc.title}: ${doc.url}`);
+});
+```
+
+### Find Product Pages
+
+```typescript
+async function findProductPages(domain: string) {
+  const pages = await services.scrape.sitemap({
+    domain,
+    keywords: ["product", "features", "solutions"]
+  });
+  
+  return pages.filter(page => {
+    const url = page.url.toLowerCase();
+    return url.includes("/product") || 
+           url.includes("/features") || 
+           url.includes("/solutions");
+  });
+}
+
+const products = await findProductPages("notion.so");
+```
+
+### Find Blog Posts on Topic
+
+```typescript
+async function findBlogPosts(domain: string, topic: string) {
+  const pages = await services.scrape.sitemap({
+    domain,
+    keywords: ["blog", "article", topic]
+  });
+  
+  // Filter for blog URLs
+  const blogPosts = pages.filter(page => {
+    const url = page.url.toLowerCase();
+    return url.includes("/blog/") || url.includes("/articles/");
+  });
+  
+  return blogPosts.slice(0, 10);
+}
+
+const aiPosts = await findBlogPosts("openai.com", "GPT-4");
+aiPosts.forEach(post => {
+  console.log(`${post.title}\n${post.url}\n`);
+});
+```
+
+### Find Contact Pages
+
+```typescript
+async function findContactPages(domain: string) {
+  const pages = await services.scrape.sitemap({
+    domain,
+    keywords: ["contact", "support", "help", "get in touch"]
+  });
+  
+  // Get the most relevant contact page
+  const contactPage = pages[0];
+  
+  if (contactPage) {
+    return {
+      url: contactPage.url,
+      title: contactPage.title,
+      description: contactPage.description
+    };
+  }
+  
+  return null;
+}
+
+const contact = await findContactPages("company.com");
+console.log(`Contact page: ${contact?.url}`);
+```
+
+### Build Site Map
+
+```typescript
+async function buildSiteStructure(domain: string) {
+  // Get all pages
+  const allPages = await services.scrape.sitemap({
+    domain,
+    keywords: [] // Empty keywords to get all pages
+  });
+  
+  // Organize by path
+  const structure: Record<string, any[]> = {};
+  
+  allPages.forEach(page => {
+    try {
+      const url = new URL(page.url);
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      const section = pathParts[0] || 'root';
+      
+      if (!structure[section]) {
+        structure[section] = [];
+      }
+      
+      structure[section].push({
+        url: page.url,
+        title: page.title,
+        path: url.pathname
+      });
+    } catch (error) {
+      // Skip invalid URLs
+    }
+  });
+  
+  return structure;
+}
+
+const siteMap = await buildSiteStructure("docs.example.com");
+console.log("Site sections:", Object.keys(siteMap));
+```
+
+### Find Best Page to Scrape
+
+```typescript
+async function findBestPageToScrape(domain: string, topic: string) {
+  const pages = await services.scrape.sitemap({
+    domain,
+    keywords: [topic, "information", "details"]
+  });
+  
+  if (pages.length === 0) {
+    throw new Error(`No pages found for topic: ${topic}`);
+  }
+  
+  // Get the most relevant page
+  const bestPage = pages[0];
+  
+  // Scrape it
+  const content = await services.scrape.website({
+    url: bestPage.url
+  });
+  
+  return {
+    page: bestPage,
+    content: content.markdown
+  };
+}
+
+const result = await findBestPageToScrape("stripe.com", "webhooks");
+console.log(`Scraped: ${result.page.title}`);
+console.log(result.content);
+```
+
+### Compare Page Relevance
+
+```typescript
+async function comparePageRelevance(domain: string, keywords: string[][]) {
+  const results = await Promise.all(
+    keywords.map(async (keywordSet) => {
+      const pages = await services.scrape.sitemap({
+        domain,
+        keywords: keywordSet
+      });
+      
+      return {
+        keywords: keywordSet.join(", "),
+        topPage: pages[0],
+        totalPages: pages.length
+      };
+    })
+  );
+  
+  return results;
+}
+
+const comparison = await comparePageRelevance("docs.stripe.com", [
+  ["payment", "API"],
+  ["subscription", "billing"],
+  ["webhook", "events"]
+]);
+
+comparison.forEach(result => {
+  console.log(`\nKeywords: ${result.keywords}`);
+  console.log(`Best match: ${result.topPage?.title}`);
+  console.log(`Total matches: ${result.totalPages}`);
+});
+```
+
+### Find All Resource Types
+
+```typescript
+async function categorizeResources(domain: string) {
+  const resourceTypes = {
+    documentation: ["docs", "documentation", "guide"],
+    blog: ["blog", "article", "news"],
+    support: ["support", "help", "faq"],
+    pricing: ["pricing", "plans", "cost"],
+    about: ["about", "company", "team"]
+  };
+  
+  const results: Record<string, any[]> = {};
+  
+  for (const [category, keywords] of Object.entries(resourceTypes)) {
+    const pages = await services.scrape.sitemap({
+      domain,
+      keywords
+    });
+    
+    results[category] = pages.slice(0, 3); // Top 3 for each category
+  }
+  
+  return results;
+}
+
+const resources = await categorizeResources("company.com");
+console.log("Documentation:", resources.documentation[0]?.url);
+console.log("Blog:", resources.blog[0]?.url);
+console.log("Support:", resources.support[0]?.url);
+```
+
+## Best Practices
+
+<Tip>
+  **Specific Keywords**: Use specific, relevant keywords to get better-ranked results. Generic keywords may return too many irrelevant pages.
+</Tip>
+
+<Info>
+  **Ranking Algorithm**: Pages are ranked using fuzzy matching against the keywords. The more keywords that match and the better the match quality, the higher the ranking.
+</Info>
+
+<Warning>
+  **Large Sites**: For very large websites, this operation may take some time as it needs to discover and analyze all pages on the domain.
+</Warning>
+
+## Integration with Scraping
+
+```typescript
+// Complete workflow: Find best page, then scrape it
+async function intelligentScrape(domain: string, topic: string) {
+  // Step 1: Find most relevant page
+  const pages = await services.scrape.sitemap({
+    domain,
+    keywords: [topic]
+  });
+  
+  if (pages.length === 0) {
+    throw new Error("No relevant pages found");
+  }
+  
+  // Step 2: Scrape the best match
+  const bestPage = pages[0];
+  const content = await services.scrape.website({
+    url: bestPage.url
+  });
+  
+  return {
+    url: bestPage.url,
+    title: bestPage.title,
+    description: bestPage.description,
+    content: content.markdown,
+    alternativePages: pages.slice(1, 5) // Other relevant pages
+  };
+}
+
+const data = await intelligentScrape("stripe.com", "payment intents");
+```
+
+## Error Handling
+
+```typescript
+async function findPagesSafely(domain: string, keywords: string[]) {
+  try {
+    const pages = await services.scrape.sitemap({
+      domain,
+      keywords
+    });
+    
+    if (pages.length === 0) {
+      console.log("No pages found matching keywords");
+      return [];
+    }
+    
+    return pages;
+  } catch (error) {
+    console.error(`Failed to get sitemap for ${domain}:`, error);
+    return [];
+  }
+}
+```
+

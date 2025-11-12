@@ -1,0 +1,393 @@
+---
+title: "Career Services"
+description: "Find career pages and scrape job postings from company websites"
+icon: "briefcase"
+---
+
+## Find Career Page
+
+Automatically discover a company's careers or jobs page URL.
+
+### Method
+
+```typescript
+services.company.careers.findPage(params);
+```
+
+### Parameters
+
+<ParamField path="domain" type="string" optional>
+   Company domain (e.g., "acme.com")
+</ParamField>
+
+<ParamField path="companyLinkedinUrl" type="string" optional>
+   Company LinkedIn URL
+</ParamField>
+
+<Note>Provide at least one of: `domain` or `companyLinkedinUrl`</Note>
+
+### Returns
+
+Returns a `Promise` with:
+
+<ResponseField name="url" type="string" required>
+   The URL of the careers page
+</ResponseField>
+
+### Example
+
+```typescript
+const careerPage = await services.company.careers.findPage({
+   domain: "microsoft.com",
+});
+
+console.log(careerPage.url); // "https://careers.microsoft.com"
+```
+
+---
+
+## Scrape Job Postings
+
+Extract structured job posting data from a careers page URL.
+
+### Method
+
+```typescript
+services.company.careers.scrapeJobs(params);
+```
+
+### Parameters
+
+<ParamField path="url" type="string" optional>
+   The URL of the careers page to scrape
+</ParamField>
+
+<ParamField path="exactMatchingOnly" type="boolean" optional default={false}>
+   Whether to only return exact matches (more precise but may miss some jobs)
+</ParamField>
+
+<ParamField path="maxJobs" type="number" optional>
+   Maximum number of jobs to return
+</ParamField>
+
+<ParamField path="recent" type="string" optional>
+   Filter by posting date. Options: - `"24h"` - Last 24 hours - `"week"` - Last week - `"month"` - Last month - `"all"`
+   - All jobs (default)
+</ParamField>
+
+<ParamField path="scrapeDetails" type="boolean" optional default={false}>
+   Whether to scrape full job descriptions (slower but more detailed)
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with an array of job objects:
+
+<ResponseField name="title" type="string" required>
+   Job title
+</ResponseField>
+
+<ResponseField name="id" type="string" optional>
+   Job posting ID
+</ResponseField>
+
+<ResponseField name="location" type="string" optional>
+   Job location
+</ResponseField>
+
+<ResponseField name="description" type="string" optional>
+   Full job description (only if `scrapeDetails: true`)
+</ResponseField>
+
+<ResponseField name="datePosted" type="string" optional>
+   Date the job was posted
+</ResponseField>
+
+### Example
+
+```typescript
+// Find and scrape in one flow
+const careerPage = await services.company.careers.findPage({
+   domain: "acme.com",
+});
+
+const jobs = await services.company.careers.scrapeJobs({
+   url: careerPage.url,
+   recent: "month",
+   maxJobs: 50,
+});
+
+console.log(`Found ${jobs.length} jobs`);
+
+jobs.forEach((job) => {
+   console.log(`${job.title} - ${job.location}`);
+   console.log(`Posted: ${job.datePosted}`);
+});
+```
+
+## Use Cases
+
+### Get Recent Job Postings
+
+```typescript
+async function getRecentJobs(domain: string) {
+   // Find career page
+   const careerPage = await services.company.careers.findPage({ domain });
+
+   // Get jobs from last week
+   const jobs = await services.company.careers.scrapeJobs({
+      url: careerPage.url,
+      recent: "week",
+   });
+
+   return jobs;
+}
+
+const recentJobs = await getRecentJobs("stripe.com");
+console.log(`${recentJobs.length} jobs posted this week`);
+```
+
+### Analyze Hiring Trends
+
+```typescript
+async function analyzeHiring(domain: string) {
+   const careerPage = await services.company.careers.findPage({ domain });
+
+   const jobs = await services.company.careers.scrapeJobs({
+      url: careerPage.url,
+      recent: "all",
+   });
+
+   // Count by department (inferred from title)
+   const departments = {
+      engineering: 0,
+      sales: 0,
+      marketing: 0,
+      product: 0,
+      other: 0,
+   };
+
+   jobs.forEach((job) => {
+      const title = job.title.toLowerCase();
+      if (title.includes("engineer") || title.includes("developer")) {
+         departments.engineering++;
+      } else if (title.includes("sales") || title.includes("account")) {
+         departments.sales++;
+      } else if (title.includes("marketing")) {
+         departments.marketing++;
+      } else if (title.includes("product")) {
+         departments.product++;
+      } else {
+         departments.other++;
+      }
+   });
+
+   return {
+      totalJobs: jobs.length,
+      byDepartment: departments,
+      locations: [...new Set(jobs.map((j) => j.location).filter(Boolean))],
+   };
+}
+```
+
+### Find Specific Roles
+
+```typescript
+async function findEngineeringRoles(domain: string) {
+   const careerPage = await services.company.careers.findPage({ domain });
+
+   const allJobs = await services.company.careers.scrapeJobs({
+      url: careerPage.url,
+      recent: "month",
+   });
+
+   // Filter for engineering roles
+   const engineeringJobs = allJobs.filter((job) => {
+      const title = job.title.toLowerCase();
+      return title.includes("engineer") || title.includes("developer") || title.includes("software");
+   });
+
+   return engineeringJobs;
+}
+```
+
+### Get Full Job Details
+
+```typescript
+async function getDetailedJobs(domain: string) {
+   const careerPage = await services.company.careers.findPage({ domain });
+
+   // Scrape with full descriptions
+   const jobs = await services.company.careers.scrapeJobs({
+      url: careerPage.url,
+      recent: "week",
+      scrapeDetails: true, // Get full descriptions
+      maxJobs: 20, // Limit for performance
+   });
+
+   jobs.forEach((job) => {
+      console.log(`\n${job.title}`);
+      console.log(`Location: ${job.location}`);
+      console.log(`Posted: ${job.datePosted}`);
+      console.log(`\nDescription:\n${job.description}`);
+   });
+
+   return jobs;
+}
+```
+
+### Monitor New Postings
+
+```typescript
+async function checkForNewJobs(domain: string, lastCheckDate: Date) {
+   const careerPage = await services.company.careers.findPage({ domain });
+
+   const jobs = await services.company.careers.scrapeJobs({
+      url: careerPage.url,
+      recent: "24h",
+   });
+
+   // Filter by date if needed
+   const newJobs = jobs.filter((job) => {
+      if (!job.datePosted) return true;
+      const postDate = new Date(job.datePosted);
+      return postDate > lastCheckDate;
+   });
+
+   if (newJobs.length > 0) {
+      console.log(`${newJobs.length} new jobs found!`);
+      newJobs.forEach((job) => {
+         console.log(`- ${job.title} (${job.location})`);
+      });
+   }
+
+   return newJobs;
+}
+```
+
+### Compare Hiring Across Companies
+
+```typescript
+async function compareHiring(domains: string[]) {
+   const results = await Promise.all(
+      domains.map(async (domain) => {
+         try {
+            const careerPage = await services.company.careers.findPage({ domain });
+            const jobs = await services.company.careers.scrapeJobs({
+               url: careerPage.url,
+               recent: "month",
+            });
+
+            return {
+               company: domain,
+               jobCount: jobs.length,
+               jobs,
+            };
+         } catch (error) {
+            console.error(`Failed to get jobs for ${domain}:`, error);
+            return {
+               company: domain,
+               jobCount: 0,
+               jobs: [],
+            };
+         }
+      })
+   );
+
+   // Sort by job count
+   results.sort((a, b) => b.jobCount - a.jobCount);
+
+   console.log("\nHiring Activity:");
+   results.forEach((r) => {
+      console.log(`${r.company}: ${r.jobCount} open positions`);
+   });
+
+   return results;
+}
+
+await compareHiring(["stripe.com", "square.com", "plaid.com"]);
+```
+
+## Best Practices
+
+<Tip>
+   **Performance**: Set `scrapeDetails: false` (default) for faster scraping when you only need job titles and
+   locations. Only enable it when you need full descriptions.
+</Tip>
+
+<Warning>
+   **Rate Limiting**: Scraping job pages can be slow for large companies with hundreds of postings. Use `maxJobs` to
+   limit results and `recent` to filter by date.
+</Warning>
+
+<Info>
+   **Exact Matching**: Enable `exactMatchingOnly: true` for higher precision but potentially fewer results. Leave it
+   disabled for broader coverage.
+</Info>
+
+## Error Handling
+
+```typescript
+async function getJobsSafely(domain: string) {
+   try {
+      // Try to find career page
+      const careerPage = await services.company.careers.findPage({ domain });
+
+      if (!careerPage?.url) {
+         console.log("No career page found");
+         return [];
+      }
+
+      // Try to scrape jobs
+      const jobs = await services.company.careers.scrapeJobs({
+         url: careerPage.url,
+         recent: "month",
+      });
+
+      return jobs;
+   } catch (error) {
+      console.error("Failed to get jobs:", error);
+      return [];
+   }
+}
+```
+
+## Integration Example
+
+```typescript
+// Complete company intelligence workflow
+async function getCompanyIntelligence(domain: string) {
+   // Get company profile
+   const companyUrl = await services.company.linkedin.findUrl({
+      website: domain,
+   });
+
+   const company = await services.company.linkedin.enrich({
+      url: companyUrl,
+      enrichLevel: "extended",
+   });
+
+   // Get job postings
+   const careerPage = await services.company.careers.findPage({ domain });
+   const jobs = await services.company.careers.scrapeJobs({
+      url: careerPage.url,
+      recent: "month",
+   });
+
+   return {
+      company: {
+         name: company.company_name,
+         size: company.employees_count,
+         industry: company.industry,
+      },
+      hiring: {
+         activeJobs: jobs.length,
+         recentPostings: jobs,
+         departments: jobs.reduce((acc, job) => {
+            // Categorize jobs...
+            return acc;
+         }, {}),
+      },
+   };
+}
+```

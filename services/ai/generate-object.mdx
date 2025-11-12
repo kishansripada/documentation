@@ -1,0 +1,398 @@
+---
+title: "Generate Object"
+description: "Generate structured JSON objects from natural language prompts"
+icon: "brackets-curly"
+---
+
+## Generate Structured Object
+
+Extract or generate structured data from natural language using AI. Perfect for parsing unstructured text, form filling, data extraction, and more.
+
+### Method
+
+```typescript
+services.ai.generateObject(params)
+```
+
+### Parameters
+
+<ParamField path="prompt" type="string" required>
+  The prompt describing what object to generate or what data to extract
+</ParamField>
+
+<ParamField path="schema" type="any" required>
+  The schema defining the structure of the output. Accepts a Zod schema instance or a plain JSON Schema object
+</ParamField>
+
+<ParamField path="model" type="string" optional default="gpt-5-mini">
+  The AI model to use. Options:
+  - `"gpt-5-mini"` - Fast and cost-effective (default)
+  - `"gemini-2.0-flash"` - Google's fast model
+  - `"gemini-2.5-pro"` - Google's most capable model
+  - `"claude-sonnet-4-5-20250929"` - Anthropic's latest model
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with:
+
+<ResponseField name="object" type="object" required>
+  The generated JSON object matching the provided schema
+</ResponseField>
+
+## Examples
+
+### Extract Contact Information
+
+```typescript
+const result = await services.ai.generateObject({
+  prompt: `
+    Extract contact info from this text:
+    "Hi, I'm Sarah Johnson. You can reach me at sarah.j@techcorp.com 
+    or call me at (555) 123-4567. I work at TechCorp as a Product Manager."
+  `,
+  schema: z.object({
+    name: z.string(),
+    email: z.string(),
+    phone: z.string(),
+    company: z.string(),
+    title: z.string()
+  })
+});
+
+console.log(result.object);
+// {
+//   name: "Sarah Johnson",
+//   email: "sarah.j@techcorp.com",
+//   phone: "(555) 123-4567",
+//   company: "TechCorp",
+//   title: "Product Manager"
+// }
+```
+
+### Parse Product Information
+
+```typescript
+const result = await services.ai.generateObject({
+  prompt: `
+    Extract product details:
+    "The iPhone 15 Pro is available in 128GB, 256GB, and 512GB.
+    Prices start at $999. Available in Titanium, Blue, and Natural colors.
+    Features include A17 Pro chip, 48MP camera, and USB-C."
+  `,
+  schema: z.object({
+    name: z.string(),
+    storage_options: z.array(z.string()),
+    starting_price: z.number(),
+    colors: z.array(z.string()),
+    features: z.array(z.string())
+  })
+});
+
+console.log(result.object);
+```
+
+### Extract Structured Data from Webpage
+
+```typescript
+// First scrape the page
+const scraped = await services.scrape.website({
+  url: "https://example.com/about"
+});
+
+// Then extract structured data
+const result = await services.ai.generateObject({
+  prompt: `Extract company information from this text: ${scraped.markdown}`,
+  schema: z.object({
+    company_name: z.string(),
+    founded_year: z.number().optional(),
+    headquarters: z.string().optional(),
+    description: z.string(),
+    key_people: z.array(z.object({
+      name: z.string(),
+      title: z.string()
+    })).optional()
+  })
+});
+
+console.log(result.object);
+```
+
+### Generate Form Data
+
+```typescript
+const result = await services.ai.generateObject({
+  prompt: "Create a sample user profile for a software engineer named Alex",
+  schema: z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+    email: z.string(),
+    age: z.number(),
+    occupation: z.string(),
+    skills: z.array(z.string()),
+    experience_years: z.number()
+  })
+});
+
+console.log(result.object);
+// {
+//   firstName: "Alex",
+//   lastName: "Smith",
+//   email: "alex.smith@example.com",
+//   age: 28,
+//   occupation: "Software Engineer",
+//   skills: ["JavaScript", "React", "Node.js", "Python"],
+//   experience_years: 5
+// }
+```
+
+## Use Cases
+
+### Parse Resumes
+
+```typescript
+async function parseResume(resumeText: string) {
+  const result = await services.ai.generateObject({
+    prompt: `Parse this resume: ${resumeText}`,
+    schema: z.object({
+      personal: z.object({
+        name: z.string(),
+        email: z.string(),
+        phone: z.string().optional(),
+        location: z.string().optional()
+      }),
+      summary: z.string().optional(),
+      experience: z.array(z.object({
+        company: z.string(),
+        title: z.string(),
+        start_date: z.string(),
+        end_date: z.string().optional(),
+        description: z.string()
+      })),
+      education: z.array(z.object({
+        institution: z.string(),
+        degree: z.string(),
+        field: z.string(),
+        graduation_year: z.number().optional()
+      })),
+      skills: z.array(z.string())
+    }),
+    model: "claude-sonnet-4-5-20250929"
+  });
+  
+  return result.object;
+}
+```
+
+### Extract Meeting Notes
+
+```typescript
+async function extractMeetingNotes(transcript: string) {
+  const result = await services.ai.generateObject({
+    prompt: `Extract structured information from this meeting transcript: ${transcript}`,
+    schema: z.object({
+      date: z.string(),
+      attendees: z.array(z.string()),
+      topics_discussed: z.array(z.string()),
+      decisions_made: z.array(z.string()),
+      action_items: z.array(z.object({
+        task: z.string(),
+        assignee: z.string(),
+        due_date: z.string().optional()
+      })),
+      next_meeting: z.string().optional()
+    })
+  });
+  
+  return result.object;
+}
+```
+
+### Parse Invoices
+
+```typescript
+async function parseInvoice(invoiceText: string) {
+  const result = await services.ai.generateObject({
+    prompt: `Extract invoice details: ${invoiceText}`,
+    schema: z.object({
+      invoice_number: z.string(),
+      date: z.string(),
+      due_date: z.string().optional(),
+      vendor: z.object({
+        name: z.string(),
+        address: z.string().optional(),
+        email: z.string().optional()
+      }),
+      customer: z.object({
+        name: z.string(),
+        address: z.string().optional()
+      }),
+      items: z.array(z.object({
+        description: z.string(),
+        quantity: z.number(),
+        unit_price: z.number(),
+        total: z.number()
+      })),
+      subtotal: z.number(),
+      tax: z.number().optional(),
+      total: z.number()
+    })
+  });
+  
+  return result.object;
+}
+```
+
+### Categorize Content
+
+```typescript
+async function categorizeArticle(articleText: string) {
+  const result = await services.ai.generateObject({
+    prompt: `Analyze and categorize this article: ${articleText}`,
+    schema: z.object({
+      title: z.string(),
+      category: z.enum(["technology", "business", "health", "science", "entertainment", "other"]),
+      subcategories: z.array(z.string()),
+      sentiment: z.enum(["positive", "negative", "neutral"]),
+      key_topics: z.array(z.string()),
+      summary: z.string(),
+      reading_time_minutes: z.number()
+    })
+  });
+  
+  return result.object;
+}
+```
+
+### Extract Product Reviews
+
+```typescript
+async function extractReviews(reviewsHtml: string) {
+  const result = await services.ai.generateObject({
+    prompt: `Extract product reviews from this HTML: ${reviewsHtml}`,
+    schema: z.object({
+      product_name: z.string(),
+      average_rating: z.number(),
+      total_reviews: z.number(),
+      reviews: z.array(z.object({
+        author: z.string(),
+        rating: z.number(),
+        title: z.string().optional(),
+        text: z.string(),
+        date: z.string().optional(),
+        verified_purchase: z.boolean().optional()
+      }))
+    })
+  });
+  
+  return result.object;
+}
+```
+
+### Generate Test Data
+
+```typescript
+async function generateTestUsers(count: number) {
+  const result = await services.ai.generateObject({
+    prompt: `Generate ${count} realistic test user profiles with diverse backgrounds`,
+    schema: z.object({
+      users: z.array(z.object({
+        id: z.string(),
+        firstName: z.string(),
+        lastName: z.string(),
+        email: z.string(),
+        age: z.number(),
+        country: z.string(),
+        occupation: z.string(),
+        interests: z.array(z.string())
+      }))
+    })
+  });
+  
+  return result.object.users;
+}
+```
+
+## Best Practices
+
+<Tip>
+  **Clear Prompts**: Be specific in your prompt about what data to extract and from where. Include the source text or context in the prompt.
+</Tip>
+
+<Warning>
+  **Schema Validation**: The AI will always return data matching your schema, but the quality depends on your prompt. Test with various inputs to ensure reliability.
+</Warning>
+
+<Info>
+  **Model Selection**: Use `gpt-5-mini` for most tasks (fast and cheap). Use `claude-sonnet-4-5-20250929` or `gemini-2.5-pro` for complex extraction requiring high accuracy.
+</Info>
+
+## Advanced Schemas
+
+### Nested Objects
+
+```typescript
+const result = await services.ai.generateObject({
+  prompt: "Create a company org chart for a tech startup",
+  schema: z.object({
+    company: z.string(),
+    departments: z.array(z.object({
+      name: z.string(),
+      head: z.string(),
+      employees: z.array(z.object({
+        name: z.string(),
+        title: z.string(),
+        reports_to: z.string().optional()
+      }))
+    }))
+  })
+});
+```
+
+### Optional Fields
+
+```typescript
+const result = await services.ai.generateObject({
+  prompt: "Extract available information from: John Doe, Software Engineer",
+  schema: z.object({
+    name: z.string(),
+    title: z.string().optional(),
+    company: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().optional()
+  })
+});
+```
+
+### Enums for Controlled Values
+
+```typescript
+const result = await services.ai.generateObject({
+  prompt: "Categorize this support ticket: 'My password reset email never arrived'",
+  schema: z.object({
+    category: z.enum(["technical", "billing", "account", "general"]),
+    priority: z.enum(["low", "medium", "high", "urgent"]),
+    sentiment: z.enum(["positive", "neutral", "negative"]),
+    requires_escalation: z.boolean()
+  })
+});
+```
+
+## Error Handling
+
+```typescript
+async function extractSafely(text: string, schema: any) {
+  try {
+    const result = await services.ai.generateObject({
+      prompt: `Extract information: ${text}`,
+      schema
+    });
+    
+    return { success: true, data: result.object };
+  } catch (error) {
+    console.error("Extraction failed:", error);
+    return { success: false, error: error.message };
+  }
+}
+```
+

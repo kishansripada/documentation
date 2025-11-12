@@ -1,87 +1,88 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Orange Slice",
   "colors": {
     "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "light": "#F8D588",
+    "dark": "#AB7428"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Guide",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Context Object (ctx)",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "ctx/overview",
+              "ctx/this-row",
+              "ctx/this-cell",
+              "ctx/sheets",
+              "ctx/cells",
+              "ctx/utilities",
+              "ctx/workflow"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Services",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "services/introduction",
+              {
+                "group": "Person Services",
+                "pages": [
+                  "services/person/overview",
+                  "services/person/linkedin",
+                  "services/person/contact"
+                ]
+              },
+              {
+                "group": "Company Services",
+                "pages": [
+                  "services/company/overview",
+                  "services/company/linkedin",
+                  "services/company/employees",
+                  "services/company/careers"
+                ]
+              },
+              {
+                "group": "Web Services",
+                "pages": [
+                  "services/web/overview",
+                  "services/web/search"
+                ]
+              },
+              {
+                "group": "Scrape Services",
+                "pages": [
+                  "services/scrape/overview",
+                  "services/scrape/website",
+                  "services/scrape/sitemap",
+                  "services/scrape/apify"
+                ]
+              },
+              {
+                "group": "AI Services",
+                "pages": [
+                  "services/ai/overview",
+                  "services/ai/generate-object",
+                  "services/ai/generate-text",
+                  "services/ai/generate-research"
+                ]
+              },
+              {
+                "group": "Geo Services",
+                "pages": [
+                  "services/geo/overview",
+                  "services/geo/parse-address"
+                ]
+              }
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -91,32 +92,31 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:kishan@orangeslice.ai"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "href": "https://orangeslice.ai/dashboard"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/orangesliceai",
+      "linkedin": "https://www.linkedin.com/company/106441399"
     }
   }
 }

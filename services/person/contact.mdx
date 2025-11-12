@@ -1,0 +1,231 @@
+---
+title: "Contact Services"
+description: "Get verified email addresses and phone numbers for individuals"
+icon: "address-book"
+---
+
+## Get Contact Information
+
+Retrieve verified contact information including email addresses and phone numbers for a person.
+
+<Warning>
+   **Important**: Always get both email and phone in the same request when needed. Never make separate requests for
+   email and phone to optimize API usage.
+</Warning>
+
+### Method
+
+```typescript
+services.person.contact.get(params);
+```
+
+### Parameters
+
+<ParamField path="firstName" type="string" optional>
+   First name of the person
+</ParamField>
+
+<ParamField path="lastName" type="string" optional>
+   Last name of the person
+</ParamField>
+
+<ParamField path="company" type="string" optional>
+   Company name
+</ParamField>
+
+<ParamField path="linkedinUrl" type="string" optional>
+   LinkedIn profile URL
+</ParamField>
+
+<ParamField path="domain" type="string" optional>
+   Company domain (e.g., "acme.com")
+</ParamField>
+
+<ParamField path="required" type="array" required>
+   Array of required contact types. Options: `"email"`, `"phone"`, `"work_email"`
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with contact information categorized by type and quality:
+
+<ResponseField name="work_emails" type="string[]">
+   Verified work email addresses (highest quality)
+</ResponseField>
+
+<ResponseField name="personal_emails" type="string[]">
+   Personal email addresses
+</ResponseField>
+
+<ResponseField name="unknown_emails" type="string[]">
+   Email addresses where type is uncertain (not necessarily bad quality)
+</ResponseField>
+
+<ResponseField name="work_phones" type="string[]">
+   Work phone numbers
+</ResponseField>
+
+<ResponseField name="personal_phones" type="string[]">
+   Personal phone numbers
+</ResponseField>
+
+<ResponseField name="unknown_phones" type="string[]">
+   Phone numbers where type is uncertain
+</ResponseField>
+
+### Example
+
+```typescript
+// Get both email and phone (recommended)
+const contact = await services.person.contact.get({
+   linkedinUrl: "https://linkedin.com/in/johndoe",
+   required: ["email", "phone"],
+});
+
+// Access work contacts (typically best quality)
+const bestEmail = contact.work_emails[0];
+const bestPhone = contact.work_phones[0];
+
+console.log(`Email: ${bestEmail}`);
+console.log(`Phone: ${bestPhone}`);
+
+// Check all available emails
+const allEmails = [...contact.work_emails, ...contact.personal_emails, ...contact.unknown_emails];
+
+console.log(`Found ${allEmails.length} email addresses`);
+```
+
+## Contact Quality Hierarchy
+
+Contact information is categorized by type, with the following quality hierarchy:
+
+1. **Work** - Highest quality, verified professional contacts
+2. **Personal** - Personal contact information
+3. **Unknown** - Unclassified but may still be valid
+
+<Tip>Unless specified otherwise, prefer work contacts first, then personal, then unknown.</Tip>
+
+## Use Cases
+
+### Get Work Email Only
+
+```typescript
+const contact = await services.person.contact.get({
+   firstName: "Jane",
+   lastName: "Smith",
+   company: "Tech Corp",
+   required: ["work_email"],
+});
+
+if (contact.work_emails.length > 0) {
+   console.log(`Work email: ${contact.work_emails[0]}`);
+}
+```
+
+### Get All Contact Methods
+
+```typescript
+const contact = await services.person.contact.get({
+   linkedinUrl: "https://linkedin.com/in/janesmith",
+   required: ["email", "phone"],
+});
+
+// Get best available email
+const bestEmail = contact.work_emails[0] || contact.personal_emails[0] || contact.unknown_emails[0];
+
+// Get best available phone
+const bestPhone = contact.work_phones[0] || contact.personal_phones[0] || contact.unknown_phones[0];
+
+console.log({ bestEmail, bestPhone });
+```
+
+### Search by Name and Company
+
+```typescript
+const contact = await services.person.contact.get({
+   firstName: "John",
+   lastName: "Doe",
+   company: "Acme Corp",
+   domain: "acme.com",
+   required: ["email", "phone"],
+});
+```
+
+## Best Practices
+
+<Warning>
+   **Compliance**: Always ensure you have legal basis and proper consent before using contact information for outreach.
+   Comply with GDPR, CAN-SPAM, and other relevant regulations.
+</Warning>
+
+<Tip>
+   **Batch Requests**: When you need both email and phone, always request them together in a single API call to minimize
+   latency and costs.
+</Tip>
+
+<Info>
+   **Verification**: All contact information is verified before being returned. However, people change jobs and contact
+   details, so consider the age of the data.
+</Info>
+
+## Error Handling
+
+```typescript
+async function getContactSafely(linkedinUrl: string) {
+   try {
+      const contact = await services.person.contact.get({
+         linkedinUrl,
+         required: ["email", "phone"],
+      });
+
+      // Check if any contacts were found
+      const hasEmail = contact.work_emails.length > 0 || contact.personal_emails.length > 0;
+      const hasPhone = contact.work_phones.length > 0 || contact.personal_phones.length > 0;
+
+      if (!hasEmail && !hasPhone) {
+         console.log("No contact information found");
+         return null;
+      }
+
+      return contact;
+   } catch (error) {
+      console.error("Failed to get contact info:", error);
+      return null;
+   }
+}
+```
+
+## Integration Example
+
+```typescript
+// Complete workflow: Find profile, enrich, and get contact
+async function getCompletePersonInfo(name: string, company: string) {
+   // Step 1: Find LinkedIn URL
+   const linkedinUrl = await services.person.linkedin.findUrl({
+      name,
+      company,
+   });
+
+   if (!linkedinUrl) {
+      throw new Error("LinkedIn profile not found");
+   }
+
+   // Step 2: Enrich profile data
+   const profile = await services.person.linkedin.enrich({
+      url: linkedinUrl,
+   });
+
+   // Step 3: Get contact information
+   const contact = await services.person.contact.get({
+      linkedinUrl,
+      required: ["email", "phone"],
+   });
+
+   return {
+      profile,
+      contact,
+      bestEmail: contact.work_emails[0] || contact.personal_emails[0],
+      bestPhone: contact.work_phones[0] || contact.personal_phones[0],
+   };
+}
+```

@@ -1,0 +1,467 @@
+---
+title: "Generate Text"
+description: "Generate text content with optional web search capabilities"
+icon: "text"
+---
+
+## Generate Text
+
+Generate high-quality text content using AI, with optional web search for up-to-date information.
+
+### Method
+
+```typescript
+services.ai.generateText(params)
+```
+
+### Parameters
+
+<ParamField path="prompt" type="string" required>
+  The prompt describing what text to generate
+</ParamField>
+
+<ParamField path="model" type="string" required>
+  The AI model to use. Options:
+  - `"gpt-5-mini"` - Fast and cost-effective
+  - `"claude-sonnet-4-5-20250929"` - High quality, balanced performance
+</ParamField>
+
+<ParamField path="enableWebSearch" type="boolean" optional default={false}>
+  Enable web search to include current information in the response
+</ParamField>
+
+### Returns
+
+Returns a `Promise` with:
+
+<ResponseField name="text" type="string" required>
+  The generated text content
+</ResponseField>
+
+## Examples
+
+### Basic Text Generation
+
+```typescript
+const result = await services.ai.generateText({
+  prompt: "Write a professional email introducing our new SaaS product to potential customers",
+  model: "gpt-5-mini"
+});
+
+console.log(result.text);
+```
+
+### With Web Search
+
+```typescript
+const result = await services.ai.generateText({
+  prompt: "What are the latest developments in quantum computing as of 2024?",
+  model: "claude-sonnet-4-5-20250929",
+  enableWebSearch: true
+});
+
+console.log(result.text);
+// Response will include current information from the web
+```
+
+### Content Creation
+
+```typescript
+const result = await services.ai.generateText({
+  prompt: `
+    Write a blog post about the benefits of remote work.
+    Include statistics and real-world examples.
+    Target audience: HR professionals
+    Tone: Professional but conversational
+    Length: ~500 words
+  `,
+  model: "claude-sonnet-4-5-20250929"
+});
+
+console.log(result.text);
+```
+
+## Use Cases
+
+### Email Generation
+
+```typescript
+async function generateEmail(context: {
+  recipient: string;
+  purpose: string;
+  tone: string;
+}) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Write a professional email to ${context.recipient}.
+      Purpose: ${context.purpose}
+      Tone: ${context.tone}
+      Include appropriate greeting and closing.
+    `,
+    model: "gpt-5-mini"
+  });
+  
+  return result.text;
+}
+
+const email = await generateEmail({
+  recipient: "potential customer",
+  purpose: "follow up on demo meeting",
+  tone: "friendly and professional"
+});
+```
+
+### Product Descriptions
+
+```typescript
+async function generateProductDescription(product: {
+  name: string;
+  features: string[];
+  target_audience: string;
+}) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Write a compelling product description for ${product.name}.
+      Features: ${product.features.join(", ")}
+      Target audience: ${product.target_audience}
+      Make it engaging and highlight key benefits.
+    `,
+    model: "claude-sonnet-4-5-20250929"
+  });
+  
+  return result.text;
+}
+```
+
+### Social Media Posts
+
+```typescript
+async function generateSocialPost(topic: string, platform: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Create a ${platform} post about ${topic}.
+      ${platform === "twitter" ? "Keep it under 280 characters." : ""}
+      ${platform === "linkedin" ? "Professional tone, 2-3 paragraphs." : ""}
+      Include relevant hashtags.
+    `,
+    model: "gpt-5-mini"
+  });
+  
+  return result.text;
+}
+
+const tweet = await generateSocialPost("AI in healthcare", "twitter");
+const linkedinPost = await generateSocialPost("AI in healthcare", "linkedin");
+```
+
+### Blog Post Outlines
+
+```typescript
+async function generateBlogOutline(topic: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Create a detailed blog post outline for: ${topic}
+      Include:
+      - Catchy title
+      - Introduction hook
+      - 5-7 main sections with subsections
+      - Conclusion
+      - Call to action
+    `,
+    model: "claude-sonnet-4-5-20250929"
+  });
+  
+  return result.text;
+}
+```
+
+### Summarization
+
+```typescript
+async function summarizeText(longText: string, length: "short" | "medium" | "long") {
+  const lengthGuide = {
+    short: "2-3 sentences",
+    medium: "1 paragraph",
+    long: "2-3 paragraphs"
+  };
+  
+  const result = await services.ai.generateText({
+    prompt: `
+      Summarize the following text in ${lengthGuide[length]}:
+      
+      ${longText}
+    `,
+    model: "gpt-5-mini"
+  });
+  
+  return result.text;
+}
+```
+
+### Content Rewriting
+
+```typescript
+async function rewriteContent(original: string, style: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Rewrite the following text in a ${style} style:
+      
+      ${original}
+    `,
+    model: "gpt-5-mini"
+  });
+  
+  return result.text;
+}
+
+const formal = await rewriteContent("Hey! Check out our new stuff!", "professional");
+const casual = await rewriteContent("We are pleased to announce...", "casual and friendly");
+```
+
+### Question Answering
+
+```typescript
+async function answerQuestion(question: string, useWebSearch: boolean = false) {
+  const result = await services.ai.generateText({
+    prompt: question,
+    model: "claude-sonnet-4-5-20250929",
+    enableWebSearch: useWebSearch
+  });
+  
+  return result.text;
+}
+
+// Without web search (uses model's knowledge)
+const answer1 = await answerQuestion("What is machine learning?");
+
+// With web search (includes current information)
+const answer2 = await answerQuestion(
+  "What are the latest AI models released in 2024?",
+  true
+);
+```
+
+### Translation and Localization
+
+```typescript
+async function translateAndLocalize(text: string, targetLanguage: string, targetCulture: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Translate and localize the following text to ${targetLanguage} for ${targetCulture} audience.
+      Adapt idioms, cultural references, and tone appropriately.
+      
+      Original text:
+      ${text}
+    `,
+    model: "claude-sonnet-4-5-20250929"
+  });
+  
+  return result.text;
+}
+```
+
+### Code Documentation
+
+```typescript
+async function generateDocumentation(code: string, language: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Write comprehensive documentation for this ${language} code:
+      
+      ${code}
+      
+      Include:
+      - Overview of what the code does
+      - Parameter descriptions
+      - Return value description
+      - Usage examples
+      - Edge cases and error handling
+    `,
+    model: "claude-sonnet-4-5-20250929"
+  });
+  
+  return result.text;
+}
+```
+
+### SEO Content
+
+```typescript
+async function generateSEOContent(keyword: string, intent: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Write SEO-optimized content for the keyword "${keyword}".
+      Search intent: ${intent}
+      
+      Requirements:
+      - Include keyword naturally in title, headings, and body
+      - Write for humans first, search engines second
+      - Include related keywords and semantic variations
+      - 800-1000 words
+      - Engaging and informative
+    `,
+    model: "claude-sonnet-4-5-20250929",
+    enableWebSearch: true
+  });
+  
+  return result.text;
+}
+```
+
+### Meeting Summaries
+
+```typescript
+async function summarizeMeeting(transcript: string) {
+  const result = await services.ai.generateText({
+    prompt: `
+      Create a concise meeting summary from this transcript:
+      
+      ${transcript}
+      
+      Include:
+      - Key discussion points
+      - Decisions made
+      - Action items with owners
+      - Next steps
+    `,
+    model: "gpt-5-mini"
+  });
+  
+  return result.text;
+}
+```
+
+## Best Practices
+
+<Tip>
+  **Detailed Prompts**: The more specific your prompt, the better the output. Include context, tone, length, format, and any specific requirements.
+</Tip>
+
+<Warning>
+  **Web Search**: Only enable web search when you need current information. It's slower and more expensive than using the model's built-in knowledge.
+</Warning>
+
+<Info>
+  **Model Selection**: Use `gpt-5-mini` for most tasks (faster and cheaper). Use `claude-sonnet-4-5-20250929` for complex writing requiring nuance and high quality.
+</Info>
+
+## Prompt Engineering Tips
+
+### Structure Your Prompts
+
+```typescript
+// Good: Structured prompt
+const result = await services.ai.generateText({
+  prompt: `
+    Task: Write a product announcement
+    Product: AI-powered analytics tool
+    Audience: Data scientists and analysts
+    Tone: Excited but professional
+    Length: 3 paragraphs
+    Include: Key features, benefits, and call-to-action
+  `,
+  model: "gpt-5-mini"
+});
+
+// Less effective: Vague prompt
+const result2 = await services.ai.generateText({
+  prompt: "Write about our new product",
+  model: "gpt-5-mini"
+});
+```
+
+### Provide Examples
+
+```typescript
+const result = await services.ai.generateText({
+  prompt: `
+    Write a product tagline similar to these examples:
+    - "Just Do It" (Nike)
+    - "Think Different" (Apple)
+    - "The Ultimate Driving Machine" (BMW)
+    
+    Product: Electric scooter for urban commuters
+  `,
+  model: "claude-sonnet-4-5-20250929"
+});
+```
+
+### Specify Format
+
+```typescript
+const result = await services.ai.generateText({
+  prompt: `
+    Create a FAQ section about our pricing.
+    Format as:
+    Q: [Question]
+    A: [Answer]
+    
+    Include 5 common questions.
+  `,
+  model: "gpt-5-mini"
+});
+```
+
+## Error Handling
+
+```typescript
+async function generateTextSafely(prompt: string, model: string) {
+  try {
+    const result = await services.ai.generateText({
+      prompt,
+      model: model as any
+    });
+    
+    if (!result.text || result.text.length === 0) {
+      throw new Error("No text generated");
+    }
+    
+    return result.text;
+  } catch (error) {
+    console.error("Text generation failed:", error);
+    return null;
+  }
+}
+```
+
+## Combining with Other Services
+
+```typescript
+// Scrape a webpage and summarize it
+async function scrapeAndSummarize(url: string) {
+  const scraped = await services.scrape.website({ url });
+  
+  const summary = await services.ai.generateText({
+    prompt: `Summarize this webpage content in 2-3 paragraphs: ${scraped.markdown}`,
+    model: "gpt-5-mini"
+  });
+  
+  return summary.text;
+}
+
+// Research a company and write a report
+async function companyReport(companyUrl: string) {
+  const company = await services.company.linkedin.enrich({
+    url: companyUrl,
+    enrichLevel: "extended"
+  });
+  
+  const report = await services.ai.generateText({
+    prompt: `
+      Write a comprehensive company analysis report based on this data:
+      ${JSON.stringify(company, null, 2)}
+      
+      Include sections on:
+      - Company overview
+      - Financial performance
+      - Market position
+      - Growth indicators
+      - Employee sentiment
+    `,
+    model: "claude-sonnet-4-5-20250929"
+  });
+  
+  return report.text;
+}
+```
+
