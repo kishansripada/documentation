@@ -1,97 +1,112 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to Orange Slice"
+description: "AI-powered sales enrichment spreadsheet platform"
 ---
 
-## Setting up
+<img className="block dark:hidden" src="/images/hero-light.png" alt="Orange Slice Hero Light" />
+<img className="hidden dark:block" src="/images/hero-dark.png" alt="Orange Slice Hero Dark" />
 
-Get your documentation site up and running in minutes.
+## What is Orange Slice?
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Orange Slice is an **AI-powered spreadsheet** that transforms how sales teams research, enrich, and qualify leads. Think of it as a supercharged spreadsheet where every column can be programmable, AI-powered, and connected to hundreds of data sources—all without writing complex code.
 
-## Make it yours
+Unlike traditional spreadsheets, Orange Slice combines:
 
-Design a docs site that looks great and empowers your users.
+-  **Familiar spreadsheet interface** with the power of custom JavaScript/TypeScript code
+-  **AI chat assistant** that writes code, creates columns, and runs bulk operations for you
+-  **Built-in data enrichment** from LinkedIn, company databases, web scraping, and contact APIs
+-  **Parallel processing** to enrich thousands of rows automatically with progress tracking
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+Whether you're finding LinkedIn profiles, generating personalized outreach, or scraping company data, Orange Slice makes it as simple as asking your AI assistant or writing a few lines of code.
 
-## Create beautiful pages
+## Two Powerful Globals
 
-Everything you need to create world-class documentation.
+Every column formula has access to two global objects:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<CardGroup cols={2}>
+   <Card title="ctx" icon="code" href="/ctx/overview">
+      **Context Object** - Interact with your spreadsheet Read/write cell values, navigate sheets, add rows, and control
+      workflow execution.
+   </Card>
+   <Card title="services" icon="layer-group" href="/services/introduction">
+      **Services** - Access data enrichment APIs LinkedIn data, contact info, web scraping, AI generation, and more.
+   </Card>
+</CardGroup>
 
-## Need inspiration?
+```typescript
+// Use ctx to read data from your spreadsheet
+const name = ctx.thisRow.get("name");
+const company = ctx.thisRow.get("company");
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+// Use services to enrich with external data
+const linkedin = await services.person.linkedin.findUrl({
+   name: name,
+   company: company,
+});
+
+// Use ctx to write results back
+ctx.thisRow.set({ linkedin_url: linkedin });
+```
+
+## Key Capabilities
+
+### Programmable Columns
+
+Every column can execute custom JavaScript/TypeScript code with full AI assistance. Access built-in services for person enrichment, company data, web scraping, AI generation, and more.
+
+```typescript
+// Find a person's LinkedIn profile
+const linkedin = await services.person.linkedin.findUrl({
+   name: ctx.thisRow.get("name"),
+   company: ctx.thisRow.get("company"),
+});
+
+return linkedin;
+```
+
+### AI-Powered Chat Assistant
+
+An intelligent assistant that understands your spreadsheet context and can:
+
+-  Create and modify columns with natural language
+-  Write code for enrichment workflows
+-  Analyze data and answer questions
+-  Run bulk operations across thousands of rows
+
+**Keyboard shortcuts:** `Cmd/Ctrl + J` to toggle chat
+
+### Data Enrichment Library
+
+Integrate with dozens of data providers:
+
+-  **LinkedIn** - Find profiles, enrich data, get employee lists
+-  **Contact Info** - Email and phone number discovery
+-  **Company Intelligence** - Funding data, employee counts, tech stacks
+-  **Web Scraping** - Smart scraping with AI-powered navigation
+-  **AI & Research** - Multi-model AI with web-grounded research
+
+### Bulk Processing
+
+Run operations on thousands of rows efficiently with:
+
+-  Parallel processing with automatic rate limiting
+-  Dependency resolution (columns run in the right order)
+-  Progress tracking and cost monitoring
+-  Pause, resume, and retry capabilities
+
+## Get Started
+
+<CardGroup cols={2}>
+   <Card title="Context Object" icon="table-rows" href="/ctx/this-row">
+      Learn how to read and write data on rows
+   </Card>
+   <Card title="AI Services" icon="brain" href="/services/ai/overview">
+      Generate text and structured data with AI
+   </Card>
+   <Card title="Person Enrichment" icon="user" href="/services/person/overview">
+      Find LinkedIn profiles and contact information
+   </Card>
+   <Card title="Web Scraping" icon="spider-web" href="/services/scrape/overview">
+      Extract data from any website
+   </Card>
+</CardGroup>

@@ -14,6 +14,12 @@
         "tab": "Guide",
         "groups": [
           {
+            "group": "Getting Started",
+            "pages": [
+              "index"
+            ]
+          },
+          {
             "group": "Context Object (ctx)",
             "pages": [
               "ctx/overview",
@@ -58,8 +64,7 @@
                 "pages": [
                   "services/scrape/overview",
                   "services/scrape/website",
-                  "services/scrape/sitemap",
-                  "services/scrape/apify"
+                  "services/scrape/sitemap"
                 ]
               },
               {
@@ -85,7 +90,7 @@
     ]
   },
   "logo": {
-    "light": "/logo/light.svg",
+    "light": "/logo/light.png",
     "dark": "/logo/dark.svg"
   },
   "navbar": {
@@ -100,18 +105,6 @@
       "label": "Dashboard",
       "href": "https://orangeslice.ai/dashboard"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
