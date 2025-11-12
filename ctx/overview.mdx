@@ -79,53 +79,102 @@ The `ctx` object includes several key properties:
 
 ## Common Patterns
 
-### Enriching Data Across Sheets
+### Enrich Contacts and Link to Accounts
 
 ```typescript
-// Get company name from current row
-const companyName = ctx.thisRow.get("company");
+// Get contact info from current row
+const name = ctx.thisRow.get("Name");
+const companyName = ctx.thisRow.get("Company");
 
-// Find or create company in Companies sheet
-const company = await ctx.sheet("Companies").addRow({
-   name: companyName,
+// Find or create company account in Accounts sheet
+const account = await ctx.sheet("Accounts").addRow({
+   "Company Name": companyName,
+   Status: "New",
 });
 
-// Link the company back to this row
-ctx.thisRow.set({ company_id: company.id });
+// Enrich the contact's LinkedIn profile
+const linkedinUrl = await services.person.linkedin.findUrl({
+   name,
+   company: companyName,
+});
+
+if (linkedinUrl) {
+   const profile = await services.person.linkedin.enrich({ url: linkedinUrl });
+
+   ctx.thisRow.set({
+      "LinkedIn URL": linkedinUrl,
+      Title: profile.job_title,
+      Location: profile.location_city,
+      "Account ID": account.id,
+      Status: "Enriched",
+   });
+}
 ```
 
-### Conditional Workflow Optimization
+### Qualify Leads and Skip Non-ICP
 
 ```typescript
-// Perform expensive operation
+// Quick qualification check before expensive enrichment
+const companyName = ctx.thisRow.get("Company");
+const website = ctx.thisRow.get("Website");
+
+// Scrape and analyze company website
+const scraped = await services.scrape.website({ url: website });
+
 const analysis = await services.ai.generateObject({
-   prompt: `Analyze if ${companyName} is in our ICP`,
-   schema: z.object({ isICP: z.boolean() }),
+   prompt: `Based on this website, is ${companyName} in our ICP? 
+   Our ICP: B2B SaaS companies, 50-500 employees, selling to enterprises.
+   Website: ${scraped.markdown}`,
+   schema: z.object({
+      isICP: z.boolean(),
+      reason: z.string(),
+   }),
 });
 
 // Signal early termination if not a good fit
 if (!analysis.object.isICP) {
+   ctx.thisRow.set({
+      Status: "Disqualified",
+      "Disqualification Reason": analysis.object.reason,
+   });
    ctx.halt("Not in ICP");
-   return false;
+   return;
 }
 
-// Continue with other operations...
+// Continue with expensive enrichment for qualified leads
+ctx.thisRow.set({ Status: "Qualified - Enriching" });
 ```
 
-### Aggregating Related Data
+### Calculate Account Health Score
 
 ```typescript
-// Get all jobs related to this company
-const jobs = ctx.thisRow.getRelatedRows("Jobs");
+// Get all contacts and activities related to this account
+const contacts = ctx.thisRow.getRelatedRows("Contacts");
+const activities = ctx.thisRow.getRelatedRows("Activities");
 
-// Calculate aggregate metrics
-const totalJobs = jobs.length;
-const openRoles = jobs.filter((job) => job.get("status") === "open").length;
+// Calculate account metrics
+const decisionMakers = contacts.filter((c) => c.get("Title")?.match(/(CEO|CTO|CFO|VP|Director)/i)).length;
 
-// Update the current row
+const recentActivities = activities.filter((a) => {
+   const date = new Date(a.get("Date"));
+   const daysAgo = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+   return daysAgo <= 30;
+}).length;
+
+const emailsSent = activities.filter((a) => a.get("Type") === "Email").length;
+const meetingsHeld = activities.filter((a) => a.get("Type") === "Meeting").length;
+
+// Calculate health score
+let healthScore = 0;
+healthScore += Math.min(decisionMakers * 10, 30); // Up to 30 points for contacts
+healthScore += Math.min(recentActivities * 5, 40); // Up to 40 points for activity
+healthScore += Math.min(meetingsHeld * 10, 30); // Up to 30 points for meetings
+
 ctx.thisRow.set({
-   total_jobs: totalJobs,
-   open_roles: openRoles,
+   "Total Contacts": contacts.length,
+   "Decision Makers": decisionMakers,
+   "Recent Activities": recentActivities,
+   "Account Health Score": healthScore,
+   "Account Status": healthScore >= 70 ? "Hot" : healthScore >= 40 ? "Warm" : "Cold",
 });
 ```
-

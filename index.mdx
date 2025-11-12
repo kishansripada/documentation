@@ -24,13 +24,19 @@ Whether you're finding LinkedIn profiles, generating personalized outreach, or s
 The **`ctx` (context) object** is your main way to interact with the spreadsheet. Most commonly, you'll use it to **reference other columns in the same row**:
 
 ```typescript
-// Get values from other columns in the current row
+// Get prospect data from other columns in the current row
 const name = ctx.thisRow.get("Name");
 const company = ctx.thisRow.get("Company");
 const title = ctx.thisRow.get("Title");
 
-// Use those values in your logic
-return `${name} is a ${title} at ${company}`;
+// Generate personalized outreach message
+const outreach = await services.ai.generateText({
+   prompt: `Write a personalized cold email to ${name}, ${title} at ${company}. 
+   Keep it under 100 words and focus on how we help sales teams save time.`,
+   model: "gpt-5-mini",
+});
+
+return outreach.text;
 ```
 
 Beyond reading cells, `ctx` lets you write values, navigate between sheets, add rows, and control workflow execution. [Learn more about ctx →](/ctx/overview)
@@ -41,10 +47,23 @@ The **`services` object** gives you access to external data sources and AI capab
 
 ```typescript
 // Combine ctx (reading cells) with services (enrichment)
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+
 const linkedin = await services.person.linkedin.findUrl({
-   name: ctx.thisRow.get("Name"),
-   company: ctx.thisRow.get("Company"),
+   name,
+   company,
 });
+
+// Enrich the profile and store data
+if (linkedin) {
+   const profile = await services.person.linkedin.enrich({ url: linkedin });
+   ctx.thisRow.set({
+      "LinkedIn URL": linkedin,
+      Title: profile.job_title,
+      Location: profile.location_city,
+   });
+}
 
 return linkedin;
 ```
@@ -67,12 +86,16 @@ return linkedin;
 Every column can execute custom JavaScript/TypeScript code with full AI assistance. Access built-in services for person enrichment, company data, web scraping, AI generation, and more.
 
 ```typescript
-// Find a person's LinkedIn profile
+// Find a prospect's LinkedIn profile
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+
 const linkedin = await services.person.linkedin.findUrl({
-   name: ctx.thisRow.get("name"),
-   company: ctx.thisRow.get("company"),
+   name,
+   company,
 });
 
+ctx.thisRow.set({ "LinkedIn URL": linkedin });
 return linkedin;
 ```
 
@@ -91,11 +114,11 @@ An intelligent assistant that understands your spreadsheet context and can:
 
 Integrate with dozens of data providers:
 
--  **LinkedIn** - Find profiles, enrich data, get employee lists
--  **Contact Info** - Email and phone number discovery
--  **Company Intelligence** - Funding data, employee counts, tech stacks
--  **Web Scraping** - Smart scraping with AI-powered navigation
--  **AI & Research** - Multi-model AI with web-grounded research
+-  **LinkedIn** - Find prospect profiles, enrich with job history, get decision makers
+-  **Contact Info** - Verified work emails and phone numbers for outreach
+-  **Company Intelligence** - Employee counts, funding, growth signals, tech stacks
+-  **Web Scraping** - Extract company data from websites for qualification
+-  **AI & Research** - Generate personalized outreach, research accounts, qualify leads
 
 ### Bulk Processing
 

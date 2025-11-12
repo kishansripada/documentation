@@ -71,23 +71,28 @@ Returns a `Promise` with contact information categorized by type and quality:
 ### Example
 
 ```typescript
-// Get both email and phone (recommended)
+// Get contact info for a prospect
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+
 const contact = await services.person.contact.get({
-   linkedinUrl: "https://linkedin.com/in/johndoe",
+   linkedinUrl,
    required: ["email", "phone"],
 });
 
-// Access work contacts (typically best quality)
-const bestEmail = contact.work_emails[0];
-const bestPhone = contact.work_phones[0];
+// Prioritize work email for B2B outreach
+const bestEmail = contact.work_emails[0] || contact.personal_emails[0] || contact.unknown_emails[0];
+const bestPhone = contact.work_phones[0] || contact.personal_phones[0] || contact.unknown_phones[0];
 
-console.log(`Email: ${bestEmail}`);
-console.log(`Phone: ${bestPhone}`);
+ctx.thisRow.set({
+   Email: bestEmail,
+   Phone: bestPhone,
+   "Email Type": contact.work_emails[0] ? "Work" : "Personal",
+   "Contact Found": !!bestEmail,
+});
 
-// Check all available emails
+// Track all available emails for multi-channel outreach
 const allEmails = [...contact.work_emails, ...contact.personal_emails, ...contact.unknown_emails];
-
-console.log(`Found ${allEmails.length} email addresses`);
+ctx.thisRow.set({ "All Emails": allEmails.join("; ") });
 ```
 
 ## Contact Quality Hierarchy
@@ -102,47 +107,89 @@ Contact information is categorized by type, with the following quality hierarchy
 
 ## Use Cases
 
-### Get Work Email Only
+### Get Work Email for Cold Outreach
 
 ```typescript
+// Get work email only for B2B cold outreach
+const firstName = ctx.thisRow.get("First Name");
+const lastName = ctx.thisRow.get("Last Name");
+const company = ctx.thisRow.get("Company");
+const domain = ctx.thisRow.get("Company Domain");
+
 const contact = await services.person.contact.get({
-   firstName: "Jane",
-   lastName: "Smith",
-   company: "Tech Corp",
+   firstName,
+   lastName,
+   company,
+   domain,
    required: ["work_email"],
 });
 
 if (contact.work_emails.length > 0) {
-   console.log(`Work email: ${contact.work_emails[0]}`);
+   ctx.thisRow.set({
+      Email: contact.work_emails[0],
+      "Email Verified": true,
+   });
+} else {
+   ctx.thisRow.set({ Status: "No Work Email Found" });
 }
 ```
 
-### Get All Contact Methods
+### Multi-Channel Outreach Setup
 
 ```typescript
+// Get all contact methods for multi-channel sales campaigns
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+
 const contact = await services.person.contact.get({
-   linkedinUrl: "https://linkedin.com/in/janesmith",
+   linkedinUrl,
    required: ["email", "phone"],
 });
 
-// Get best available email
+// Get best available email (prioritize work)
 const bestEmail = contact.work_emails[0] || contact.personal_emails[0] || contact.unknown_emails[0];
 
-// Get best available phone
+// Get best available phone (prioritize work)
 const bestPhone = contact.work_phones[0] || contact.personal_phones[0] || contact.unknown_phones[0];
 
-console.log({ bestEmail, bestPhone });
+// Set up for multi-channel outreach
+ctx.thisRow.set({
+   "Primary Email": bestEmail,
+   "Primary Phone": bestPhone,
+   "Has Work Email": contact.work_emails.length > 0,
+   "Has Phone": !!bestPhone,
+   "Outreach Channels": [bestEmail && "Email", bestPhone && "Phone", linkedinUrl && "LinkedIn"]
+      .filter(Boolean)
+      .join(", "),
+});
 ```
 
-### Search by Name and Company
+### Enrich Prospects Without LinkedIn URL
 
 ```typescript
+// Find contact info using just name and company (no LinkedIn URL needed)
+const firstName = ctx.thisRow.get("First Name");
+const lastName = ctx.thisRow.get("Last Name");
+const company = ctx.thisRow.get("Company");
+const website = ctx.thisRow.get("Website");
+
+// Extract domain from website
+const domain = website
+   ?.replace(/^https?:\/\//, "")
+   .replace(/^www\./, "")
+   .split("/")[0];
+
 const contact = await services.person.contact.get({
-   firstName: "John",
-   lastName: "Doe",
-   company: "Acme Corp",
-   domain: "acme.com",
+   firstName,
+   lastName,
+   company,
+   domain,
    required: ["email", "phone"],
+});
+
+const bestEmail = contact.work_emails[0] || contact.personal_emails[0];
+ctx.thisRow.set({
+   Email: bestEmail,
+   "Email Source": "Name + Company Lookup",
 });
 ```
 
@@ -190,37 +237,47 @@ async function getContactSafely(linkedinUrl: string) {
 }
 ```
 
-## Integration Example
+## Complete Prospect Enrichment Workflow
 
 ```typescript
-// Complete workflow: Find profile, enrich, and get contact
-async function getCompletePersonInfo(name: string, company: string) {
-   // Step 1: Find LinkedIn URL
-   const linkedinUrl = await services.person.linkedin.findUrl({
-      name,
-      company,
-   });
+// Full sales enrichment: Find LinkedIn, enrich profile, get contact info
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
 
-   if (!linkedinUrl) {
-      throw new Error("LinkedIn profile not found");
-   }
+// Step 1: Find LinkedIn URL
+const linkedinUrl = await services.person.linkedin.findUrl({
+   name,
+   company,
+});
 
-   // Step 2: Enrich profile data
-   const profile = await services.person.linkedin.enrich({
-      url: linkedinUrl,
-   });
-
-   // Step 3: Get contact information
-   const contact = await services.person.contact.get({
-      linkedinUrl,
-      required: ["email", "phone"],
-   });
-
-   return {
-      profile,
-      contact,
-      bestEmail: contact.work_emails[0] || contact.personal_emails[0],
-      bestPhone: contact.work_phones[0] || contact.personal_phones[0],
-   };
+if (!linkedinUrl) {
+   ctx.thisRow.set({ Status: "LinkedIn Not Found" });
+   return;
 }
+
+// Step 2: Enrich profile data
+const profile = await services.person.linkedin.enrich({
+   url: linkedinUrl,
+});
+
+// Step 3: Get contact information
+const contact = await services.person.contact.get({
+   linkedinUrl,
+   required: ["email", "phone"],
+});
+
+// Step 4: Store all enriched data for sales outreach
+const bestEmail = contact.work_emails[0] || contact.personal_emails[0];
+const bestPhone = contact.work_phones[0] || contact.personal_phones[0];
+
+ctx.thisRow.set({
+   "LinkedIn URL": linkedinUrl,
+   "Full Name": profile.full_name,
+   Title: profile.job_title,
+   Location: profile.location_city,
+   Email: bestEmail,
+   Phone: bestPhone,
+   "Years of Experience": Math.floor((profile.total_experience_duration_months || 0) / 12),
+   Status: "Fully Enriched",
+});
 ```

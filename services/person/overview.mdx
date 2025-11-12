@@ -21,41 +21,69 @@ Person services provide comprehensive tools for discovering and enriching indivi
 
 ## Common Use Cases
 
-### Finding a LinkedIn Profile
+### Finding a Prospect's LinkedIn Profile
 
 ```typescript
+// Find LinkedIn URL for prospects in your list
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+const title = ctx.thisRow.get("Title");
+
 const url = await services.person.linkedin.findUrl({
-   name: "Jane Smith",
-   company: "Tech Corp",
-   title: "Software Engineer",
+   name,
+   company,
+   title,
 });
+
+ctx.thisRow.set({ "LinkedIn URL": url });
 ```
 
-### Enriching Profile Data
+### Enriching Prospect Data
 
 ```typescript
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+
 const profile = await services.person.linkedin.enrich({
-   url: "https://linkedin.com/in/janesmith",
+   url: linkedinUrl,
 });
 
-console.log(profile.full_name);
-console.log(profile.headline);
-console.log(profile.experience);
+// Store enriched data for sales outreach
+ctx.thisRow.set({
+   "Full Name": profile.full_name,
+   Headline: profile.headline,
+   "Current Title": profile.job_title,
+   Location: profile.location_city,
+   "Years of Experience": Math.floor((profile.total_experience_duration_months || 0) / 12),
+});
 ```
 
-### Getting Contact Information
+### Getting Prospect Contact Information
 
 ```typescript
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+
 const contact = await services.person.contact.get({
-   linkedinUrl: "https://linkedin.com/in/janesmith",
-   required: ["email", "phone"],
+   linkedinUrl,
+   required: ["email"],
 });
 
-// Access work emails (best quality)
-console.log(contact.work_emails);
+// Store work email (best for B2B outreach)
+if (contact.work_emails && contact.work_emails.length > 0) {
+   ctx.thisRow.set({
+      Email: contact.work_emails[0],
+      "Email Type": "Work",
+   });
+} else if (contact.personal_emails && contact.personal_emails.length > 0) {
+   ctx.thisRow.set({
+      Email: contact.personal_emails[0],
+      "Email Type": "Personal",
+   });
+}
 
-// Access personal emails
-console.log(contact.personal_emails);
+// Store phone if available
+if (contact.phone_numbers && contact.phone_numbers.length > 0) {
+   ctx.thisRow.set({ Phone: contact.phone_numbers[0] });
+}
 ```
 
 ## Data Quality

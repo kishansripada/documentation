@@ -20,7 +20,7 @@
             ]
           },
           {
-            "group": "Context Object (ctx)",
+            "group": "Context",
             "pages": [
               "ctx/overview",
               "ctx/this-row",

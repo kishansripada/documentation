@@ -13,26 +13,26 @@ Conduct deep research on any topic with web access and generate comprehensive, w
 </Warning>
 
 <Tip>
-  **When to Use**: Reserve this for intensive research needs like market analysis, competitive intelligence, due diligence, or comprehensive industry reports. For simpler questions, use `generateText` with web search instead.
+  **When to Use**: Reserve this for deep account research, competitive intelligence on prospects, industry analysis for territory planning, or comprehensive company due diligence before major deals. For simpler prospect research, use `generateText` with web search instead.
 </Tip>
 
 ## When to Use This vs Other Tools
 
 <CardGroup cols={2}>
   <Card title="Use Generate Research For" icon="check">
-    - Comprehensive market analysis
-    - Competitive intelligence reports
-    - Due diligence investigations
-    - Industry trend analysis
-    - Multi-faceted research topics
-    - Reports requiring citations
+    - Deep account research for enterprise deals
+    - Competitive analysis of prospect's competitors
+    - Industry trend analysis for territory planning
+    - Company due diligence before major contracts
+    - Multi-faceted prospect intelligence
+    - Research reports requiring citations
   </Card>
   <Card title="Use Generate Text Instead For" icon="lightbulb">
-    - Quick questions with web search
-    - Single-topic inquiries
-    - Content generation
-    - Simpler research needs
-    - Budget-conscious projects
+    - Quick prospect company news
+    - Single-topic inquiries (funding, leadership)
+    - Personalized outreach generation
+    - Simple lead qualification
+    - High-volume enrichment workflows
   </Card>
 </CardGroup>
 
@@ -75,53 +75,80 @@ Returns a `Promise` with:
 
 ## Examples
 
-### Basic Research
+### Deep Account Research
 
 ```typescript
+// Comprehensive research on a high-value prospect
+const companyName = ctx.thisRow.get("Company");
+
 const result = await services.ai.generateResearch({
-  query: "What are the latest trends in artificial intelligence for 2024?"
+  query: `Conduct comprehensive research on ${companyName} including:
+  - Recent news and developments
+  - Financial performance and funding
+  - Key executives and decision makers
+  - Product offerings and market position
+  - Growth indicators and expansion plans
+  - Potential pain points our solution could address`
 });
 
-console.log(result.content);
-console.log(`Cost: $${result.cost}`);
-console.log(`Tokens used: ${result.usage.prompt_tokens + result.usage.completion_tokens}`);
+ctx.thisRow.set({ 
+  "Account Research": result.content,
+  "Research Cost": result.cost 
+});
 ```
 
-### Market Research
+### Industry Analysis for Territory Planning
 
 ```typescript
+// Research an industry to prioritize prospects and tailor messaging
+const industry = ctx.thisRow.get("Target Industry");
+
 const result = await services.ai.generateResearch({
-  query: "Analyze the current state of the electric vehicle market, including major players, market share, and growth projections"
+  query: `Analyze the ${industry} industry including:
+  - Market size and growth trends
+  - Major players and market share
+  - Common challenges and pain points
+  - Technology adoption trends
+  - Buying patterns and decision-making processes`
 });
 
-console.log(result.content);
-// Comprehensive report with current market data
+return result.content;
+// Comprehensive report to inform sales strategy
 ```
 
-### Competitive Analysis
+### Competitive Intelligence on Prospect's Market
 
 ```typescript
+// Research a prospect's competitive landscape
+const company = ctx.thisRow.get("Company");
+const industry = ctx.thisRow.get("Industry");
+
 const result = await services.ai.generateResearch({
-  query: "Compare the features, pricing, and market positioning of the top 5 CRM platforms in 2024"
+  query: `Analyze the competitive landscape for ${company} in the ${industry} space:
+  - Who are their main competitors?
+  - What is ${company}'s market position?
+  - What are their competitive advantages and weaknesses?
+  - How might they be evaluating solutions like ours?`
 });
 
-console.log(result.content);
+ctx.thisRow.set({ "Competitive Analysis": result.content });
 ```
 
 ## Use Cases
 
-### Competitive Analysis
+### Prospect's Competitive Landscape Analysis
 
 ```typescript
-async function competitiveAnalysis(industry: string) {
+async function analyzeProspectCompetitors(companyName: string, industry: string) {
   const result = await services.ai.generateResearch({
     query: `
-      Analyze the competitive landscape of the ${industry} industry:
-      - Major players and market share
-      - Key differentiators and positioning
-      - Pricing strategies
-      - Strengths and weaknesses
-      - Market trends and opportunities
+      Analyze the competitive landscape for ${companyName} in ${industry}:
+      - Who are ${companyName}'s main competitors?
+      - What is ${companyName}'s market positioning?
+      - Key differentiators and competitive advantages
+      - Potential pain points and challenges
+      - How this affects their buying priorities
+      - Opportunities for our solution
     `
   });
   
@@ -132,19 +159,20 @@ async function competitiveAnalysis(industry: string) {
 }
 ```
 
-### Due Diligence Research
+### Enterprise Deal Due Diligence
 
 ```typescript
-async function dueDiligence(company: string) {
+async function enterpriseDealResearch(company: string) {
   const result = await services.ai.generateResearch({
     query: `
-      Conduct due diligence research on ${company}:
-      - Corporate structure and ownership
-      - Financial health and stability
-      - Legal and regulatory compliance
-      - Reputation and public perception
-      - Key personnel and leadership
-      - Potential risks and red flags
+      Conduct due diligence on ${company} for a potential enterprise deal:
+      - Financial health and stability indicators
+      - Recent funding rounds and investor sentiment
+      - Leadership team and key decision makers
+      - Company culture and employee satisfaction
+      - Technology stack and current vendors
+      - Potential risks or red flags
+      - Buying signals and readiness indicators
     `
   });
   

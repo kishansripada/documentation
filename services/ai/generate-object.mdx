@@ -9,7 +9,9 @@ icon: "brackets-curly"
 Extract or generate structured data from natural language using AI. Perfect for parsing unstructured text, form filling, data extraction, and more.
 
 <Tip>
-  **Best for Website Data Extraction**: Combine with `services.scrape.website()` to extract structured information from specific webpages. This is the preferred method for answering questions like "How many physicians are at this doctor's office?" or "What are the product specifications on this page?"
+   **Best for Extracting Sales Intelligence**: Combine with `services.scrape.website()` to extract structured
+   information from prospect websites. Perfect for questions like "What products does this company sell?" or "How many
+   decision-makers are listed on their about page?"
 </Tip>
 
 ### Method
@@ -44,77 +46,82 @@ Returns a `Promise` with:
 
 ## Examples
 
-### Extract Contact Information
+### Extract Lead Information from Email Signature
 
 ```typescript
+// Extract structured lead data from an email signature or bio
+const emailSignature = ctx.thisRow.get("Email Signature");
+
 const result = await services.ai.generateObject({
-   prompt: `
-    Extract contact info from this text:
-    "Hi, I'm Sarah Johnson. You can reach me at sarah.j@techcorp.com 
-    or call me at (555) 123-4567. I work at TechCorp as a Product Manager."
-  `,
+   prompt: `Extract contact info from this email signature: ${emailSignature}`,
    schema: z.object({
       name: z.string(),
       email: z.string(),
-      phone: z.string(),
+      phone: z.string().optional(),
       company: z.string(),
       title: z.string(),
+      linkedin: z.string().optional(),
    }),
 });
 
-console.log(result.object);
-// {
-//   name: "Sarah Johnson",
-//   email: "sarah.j@techcorp.com",
-//   phone: "(555) 123-4567",
-//   company: "TechCorp",
-//   title: "Product Manager"
-// }
+ctx.thisRow.set({
+   Name: result.object.name,
+   Email: result.object.email,
+   Phone: result.object.phone,
+   Company: result.object.company,
+   Title: result.object.title,
+});
 ```
 
-### Parse Product Information
+### Extract Company's Product Offerings
 
 ```typescript
+// Scrape and extract what products/services a prospect company offers
+const website = ctx.thisRow.get("Website");
+const scraped = await services.scrape.website({ url: website });
+
 const result = await services.ai.generateObject({
-   prompt: `
-    Extract product details:
-    "The iPhone 15 Pro is available in 128GB, 256GB, and 512GB.
-    Prices start at $999. Available in Titanium, Blue, and Natural colors.
-    Features include A17 Pro chip, 48MP camera, and USB-C."
-  `,
+   prompt: `Extract the company's product/service offerings from this website: ${scraped.markdown}`,
    schema: z.object({
-      name: z.string(),
-      storage_options: z.array(z.string()),
-      starting_price: z.number(),
-      colors: z.array(z.string()),
-      features: z.array(z.string()),
+      primary_products: z.array(z.string()),
+      target_market: z.string(),
+      pricing_model: z.string().optional(),
+      key_features: z.array(z.string()),
+      use_cases: z.array(z.string()).optional(),
    }),
 });
 
-console.log(result.object);
+ctx.thisRow.set({
+   Products: result.object.primary_products.join(", "),
+   "Target Market": result.object.target_market,
+   "Pricing Model": result.object.pricing_model,
+});
 ```
 
-### Extract Structured Data from Webpage
+### Extract Company Intelligence from About Page
 
 <Info>
-  **Recommended Pattern**: This is the preferred approach for extracting specific information from known websites. It's more accurate and cost-effective than using web search for targeted data extraction.
+   **Recommended Pattern**: This is the preferred approach for enriching prospect data from their website. It's more
+   accurate and cost-effective than using web search for targeted data extraction.
 </Info>
 
 ```typescript
-// First scrape the page
+// Scrape prospect's about page for company intelligence
+const website = ctx.thisRow.get("Website");
 const scraped = await services.scrape.website({
-   url: "https://example.com/about",
+   url: `${website}/about`,
 });
 
-// Then extract structured data
+// Extract structured company data for sales context
 const result = await services.ai.generateObject({
-   prompt: `Extract company information from this text: ${scraped.markdown}`,
+   prompt: `Extract company information from this about page: ${scraped.markdown}`,
    schema: z.object({
       company_name: z.string(),
       founded_year: z.number().optional(),
       headquarters: z.string().optional(),
+      employee_count_estimate: z.string().optional(),
       description: z.string(),
-      key_people: z
+      key_executives: z
          .array(
             z.object({
                name: z.string(),
@@ -122,35 +129,45 @@ const result = await services.ai.generateObject({
             })
          )
          .optional(),
+      mission_statement: z.string().optional(),
    }),
 });
 
-console.log(result.object);
+ctx.thisRow.set({
+   "Company Name": result.object.company_name,
+   Founded: result.object.founded_year,
+   "HQ Location": result.object.headquarters,
+   "Company Description": result.object.description,
+});
 ```
 
-### Count Items on a Webpage
+### Identify Decision Makers from Team Page
 
 ```typescript
-// Example: Count physicians at a doctor's office
+// Extract decision makers from a prospect's team/about page
+const website = ctx.thisRow.get("Website");
 const scraped = await services.scrape.website({
-   url: "https://medicalpractice.com/our-team",
+   url: `${website}/team`,
 });
 
 const result = await services.ai.generateObject({
-   prompt: `How many physicians work at this practice? Extract their names and specialties: ${scraped.markdown}`,
+   prompt: `Extract all executives and decision makers from this team page. 
+   Focus on C-level, VPs, and Directors: ${scraped.markdown}`,
    schema: z.object({
-      total_physicians: z.number(),
-      physicians: z.array(
+      total_decision_makers: z.number(),
+      decision_makers: z.array(
          z.object({
             name: z.string(),
-            specialty: z.string().optional(),
-            credentials: z.string().optional(),
+            title: z.string(),
+            department: z.string().optional(),
+            linkedin_url: z.string().optional(),
          })
       ),
    }),
 });
 
-console.log(`Total physicians: ${result.object.total_physicians}`);
-console.log(result.object.physicians);
+ctx.thisRow.set({
+   "Decision Maker Count": result.object.total_decision_makers,
+   "Key Contacts": result.object.decision_makers.map((dm) => `${dm.name} (${dm.title})`).join("; "),
+});
 ```
-

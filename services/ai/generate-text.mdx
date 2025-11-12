@@ -9,33 +9,35 @@ icon: "text"
 Generate high-quality text content using AI, with optional web search for up-to-date information.
 
 <Tip>
-  **Best for Complex Queries Across Multiple Sources**: Use `enableWebSearch: true` for questions that aren't on a specific website, like "What are the best project management tools?" or "How does blockchain technology work?" This searches across multiple sources to answer your question.
+   **Best for Prospect Research Across Multiple Sources**: Use `enableWebSearch: true` for research that requires
+   multiple sources, like "What are the latest funding rounds for fintech companies?" or "What challenges is the
+   healthcare industry facing?" This searches across multiple sources to enrich your sales context.
 </Tip>
 
 <Warning>
-  **Not for Specific Website Data**: If you need to extract information from a specific website, use `services.scrape.website()` + `services.ai.generateObject()` instead. It's more accurate and cost-effective.
+   **Not for Specific Website Data**: If you need to extract information from a specific website, use
+   `services.scrape.website()` + `services.ai.generateObject()` instead. It's more accurate and cost-effective.
 </Warning>
 
 ### Method
 
 ```typescript
-services.ai.generateText(params)
+services.ai.generateText(params);
 ```
 
 ### Parameters
 
 <ParamField path="prompt" type="string" required>
-  The prompt describing what text to generate
+   The prompt describing what text to generate
 </ParamField>
 
 <ParamField path="model" type="string" required>
-  The AI model to use. Options:
-  - `"gpt-5-mini"` - Fast and cost-effective
-  - `"claude-sonnet-4-5-20250929"` - High quality, balanced performance
+   The AI model to use. Options: - `"gpt-5-mini"` - Fast and cost-effective - `"claude-sonnet-4-5-20250929"` - High
+   quality, balanced performance
 </ParamField>
 
 <ParamField path="enableWebSearch" type="boolean" optional default={false}>
-  Enable web search to include current information in the response
+   Enable web search to include current information in the response
 </ParamField>
 
 ### Returns
@@ -43,7 +45,7 @@ services.ai.generateText(params)
 Returns a `Promise` with:
 
 <ResponseField name="text" type="string" required>
-  The generated text content
+   The generated text content
 </ResponseField>
 
 ## Examples
@@ -51,110 +53,140 @@ Returns a `Promise` with:
 ### Basic Text Generation
 
 ```typescript
+// Generate personalized outreach email using prospect data
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+const title = ctx.thisRow.get("Title");
+
 const result = await services.ai.generateText({
-  prompt: "Write a professional email introducing our new SaaS product to potential customers",
-  model: "gpt-5-mini"
+   prompt: `Write a personalized cold email to ${name}, a ${title} at ${company}. 
+  Our product helps sales teams automate lead enrichment. 
+  Keep it under 100 words and include a clear call-to-action.`,
+   model: "gpt-5-mini",
 });
 
-console.log(result.text);
+return result.text;
 ```
 
 ### With Web Search
 
 <Info>
-  **When to Use Web Search**: Enable web search for questions that require current information from multiple sources, not available on a single specific website.
+   **When to Use Web Search**: Enable web search for questions that require current information from multiple sources,
+   not available on a single specific website.
 </Info>
 
 ```typescript
+// Research a prospect's company for recent news and developments
+const company = ctx.thisRow.get("Company");
+
 const result = await services.ai.generateText({
-  prompt: "What are the latest developments in quantum computing as of 2024?",
-  model: "claude-sonnet-4-5-20250929",
-  enableWebSearch: true
+   prompt: `What are the latest news, funding rounds, and product launches for ${company}? 
+  Focus on information relevant for sales outreach.`,
+   model: "claude-sonnet-4-5-20250929",
+   enableWebSearch: true,
 });
 
-console.log(result.text);
+return result.text;
 // Response will include current information from the web
 ```
 
-### Answer Questions Across Multiple Sources
+### Research Prospect's Industry
 
 ```typescript
-// Good use case: Question requiring multiple sources
+// Research a prospect's industry to personalize outreach
+const industry = ctx.thisRow.get("Industry");
+const company = ctx.thisRow.get("Company");
+
 const result = await services.ai.generateText({
-  prompt: "What are the top 5 CRM platforms for small businesses and their key differences?",
-  model: "claude-sonnet-4-5-20250929",
-  enableWebSearch: true
+   prompt: `What are the biggest challenges facing ${industry} companies like ${company} in 2024? 
+  Focus on operational and growth challenges that sales tools could address.`,
+   model: "claude-sonnet-4-5-20250929",
+   enableWebSearch: true,
 });
 
-console.log(result.text);
+return result.text;
 // AI will search multiple sources and synthesize an answer
 ```
 
-### Content Creation
+### Generate Personalized Value Proposition
 
 ```typescript
+const name = ctx.thisRow.get("Name");
+const title = ctx.thisRow.get("Title");
+const company = ctx.thisRow.get("Company");
+const painPoints = ctx.thisRow.get("Pain Points");
+
 const result = await services.ai.generateText({
-  prompt: `
-    Write a blog post about the benefits of remote work.
-    Include statistics and real-world examples.
-    Target audience: HR professionals
-    Tone: Professional but conversational
-    Length: ~500 words
+   prompt: `
+    Write a personalized value proposition for ${name}, ${title} at ${company}.
+    Their key challenges: ${painPoints}
+    Our solution: AI-powered sales enrichment that saves 10+ hours per week
+    Tone: Professional and consultative
+    Length: 2-3 sentences
   `,
-  model: "claude-sonnet-4-5-20250929"
+   model: "claude-sonnet-4-5-20250929",
 });
 
-console.log(result.text);
+return result.text;
 ```
 
 ## Use Cases
 
-### Question Answering with Web Search
+### Research Prospect Company News
 
 ```typescript
-async function answerQuestion(question: string) {
-  const result = await services.ai.generateText({
-    prompt: question,
-    model: "claude-sonnet-4-5-20250929",
-    enableWebSearch: true
-  });
-  
-  return result.text;
+async function researchCompanyNews(companyName: string) {
+   const result = await services.ai.generateText({
+      prompt: `Find recent news about ${companyName} including funding, acquisitions, 
+    product launches, or leadership changes. Summarize the top 3 most relevant items 
+    for a sales conversation.`,
+      model: "claude-sonnet-4-5-20250929",
+      enableWebSearch: true,
+   });
+
+   return result.text;
 }
 
-// Example: Get current information from multiple sources
-const answer = await answerQuestion(
-  "What are the latest AI models released in 2024?"
-);
+// Example: Get current company information for outreach
+const companyName = ctx.thisRow.get("Company");
+const news = await researchCompanyNews(companyName);
+ctx.thisRow.set({ "Recent News": news });
 ```
 
-### Content Summarization
+### Summarize Company Website for Sales Context
 
 ```typescript
-async function summarizeWebpage(url: string) {
-  const scraped = await services.scrape.website({ url });
-  
-  const summary = await services.ai.generateText({
-    prompt: `Summarize this webpage in 2-3 paragraphs: ${scraped.markdown}`,
-    model: "gpt-5-mini"
-  });
-  
-  return summary.text;
+async function summarizeCompanyForSales(websiteUrl: string) {
+   const scraped = await services.scrape.website({ url: websiteUrl });
+
+   const summary = await services.ai.generateText({
+      prompt: `Based on this company website, identify: 
+    1) What products/services they offer
+    2) Their target market
+    3) Key pain points they might have
+    4) Potential buying signals
+    
+    Website content: ${scraped.markdown}`,
+      model: "gpt-5-mini",
+   });
+
+   return summary.text;
 }
 ```
 
 ## Best Practices
 
 <Tip>
-  **Detailed Prompts**: The more specific your prompt, the better the output. Include context, tone, length, format, and any specific requirements.
+   **Detailed Prompts**: The more specific your prompt, the better the output. Include context, tone, length, format,
+   and any specific requirements.
 </Tip>
 
 <Warning>
-  **Web Search**: Only enable web search when you need current information. It's slower and more expensive than using the model's built-in knowledge.
+   **Web Search**: Only enable web search when you need current information. It's slower and more expensive than using
+   the model's built-in knowledge.
 </Warning>
 
 <Info>
-  **Model Selection**: Use `gpt-5-mini` for most tasks (faster and cheaper). Use `claude-sonnet-4-5-20250929` for complex writing requiring nuance and high quality.
+   **Model Selection**: Use `gpt-5-mini` for most tasks (faster and cheaper). Use `claude-sonnet-4-5-20250929` for
+   complex writing requiring nuance and high quality.
 </Info>
-
-

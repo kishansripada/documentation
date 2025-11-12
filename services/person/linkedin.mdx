@@ -43,13 +43,18 @@ Returns a `Promise<string | undefined>` containing the LinkedIn profile URL if f
 ### Example
 
 ```typescript
+// Find LinkedIn profile for a prospect in your spreadsheet
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+const title = ctx.thisRow.get("Title");
+
 const linkedinUrl = await services.person.linkedin.findUrl({
-   name: "Sarah Johnson",
-   title: "Product Manager",
-   company: "Microsoft",
+   name,
+   title,
+   company,
 });
 
-console.log(linkedinUrl); // "https://linkedin.com/in/sarahjohnson"
+ctx.thisRow.set({ "LinkedIn URL": linkedinUrl });
 ```
 
 ---
@@ -235,28 +240,31 @@ Returns a `Promise` with a comprehensive profile object containing:
 ### Example
 
 ```typescript
+// Enrich a prospect's LinkedIn profile
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+
 const profile = await services.person.linkedin.enrich({
-   url: "https://linkedin.com/in/sarahjohnson",
+   url: linkedinUrl,
 });
 
-// Access basic information
-console.log(`${profile.full_name} - ${profile.headline}`);
-console.log(`Location: ${profile.location_city}, ${profile.location_country}`);
-
-// Access work experience
-profile.experience?.forEach((job) => {
-   console.log(`${job.title} at ${job.company_name}`);
-   console.log(`Duration: ${job.duration}`);
-   console.log(`Description: ${job.description}`);
+// Store key information for sales context
+ctx.thisRow.set({
+   "Full Name": profile.full_name,
+   Headline: profile.headline,
+   Location: `${profile.location_city}, ${profile.location_country}`,
+   "Current Title": profile.job_title,
+   Skills: profile.skills?.slice(0, 5).join(", "),
+   Connections: profile.connections_count,
 });
 
-// Access education
-profile.education?.forEach((edu) => {
-   console.log(`${edu.title} - ${edu.major}`);
-});
-
-// Access skills
-console.log(`Skills: ${profile.skills?.join(", ")}`);
+// Find current role for personalization
+const currentJob = profile.experience?.find((job) => job.date_to === null);
+if (currentJob) {
+   ctx.thisRow.set({
+      "Current Company": currentJob.company_name,
+      "Time in Role": currentJob.duration,
+   });
+}
 ```
 
 ## Best Practices
@@ -273,49 +281,85 @@ console.log(`Skills: ${profile.skills?.join(", ")}`);
 
 ## Common Patterns
 
-### Find and Enrich in One Flow
+### Complete Prospect Enrichment Flow
 
 ```typescript
-async function getFullProfile(name: string, company: string) {
-   // First, find the LinkedIn URL
-   const url = await services.person.linkedin.findUrl({
-      name,
-      company,
-   });
+// Find and enrich a prospect's LinkedIn profile in one workflow
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
 
-   if (!url) {
-      throw new Error("Profile not found");
-   }
+// Step 1: Find LinkedIn URL
+const url = await services.person.linkedin.findUrl({
+   name,
+   company,
+});
 
-   // Then enrich the profile
-   const profile = await services.person.linkedin.enrich({ url });
-
-   return profile;
+if (!url) {
+   ctx.thisRow.set({ Status: "LinkedIn Not Found" });
+   return;
 }
 
-const profile = await getFullProfile("John Doe", "Acme Corp");
+// Step 2: Enrich the profile
+const profile = await services.person.linkedin.enrich({ url });
+
+// Step 3: Store enriched data for sales outreach
+ctx.thisRow.set({
+   "LinkedIn URL": url,
+   "Full Name": profile.full_name,
+   Title: profile.job_title,
+   Location: profile.location_city,
+   Headline: profile.headline,
+   "Years of Experience": Math.floor((profile.total_experience_duration_months || 0) / 12),
+   Status: "Enriched",
+});
 ```
 
-### Extract Current Job Information
+### Extract Current Job for Personalization
 
 ```typescript
-const profile = await services.person.linkedin.enrich({ url });
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+const profile = await services.person.linkedin.enrich({ url: linkedinUrl });
 
 // Find current position (where date_to is null)
 const currentJob = profile.experience?.find((job) => job.date_to === null);
 
 if (currentJob) {
-   console.log(`Current Role: ${currentJob.title}`);
-   console.log(`Company: ${currentJob.company_name}`);
-   console.log(`Started: ${currentJob.date_from}`);
+   ctx.thisRow.set({
+      "Current Role": currentJob.title,
+      "Current Company": currentJob.company_name,
+      "Started Role": currentJob.date_from,
+      "Time in Role": currentJob.duration,
+      "Seniority Level": currentJob.management_level,
+   });
+
+   // Calculate if they're new in role (good timing for outreach)
+   const isNewInRole = currentJob.duration_months && currentJob.duration_months < 6;
+   ctx.thisRow.set({ "New in Role": isNewInRole });
 }
 ```
 
-### Calculate Total Experience
+### Qualify Prospects by Experience Level
 
 ```typescript
-const profile = await services.person.linkedin.enrich({ url });
+const linkedinUrl = ctx.thisRow.get("LinkedIn URL");
+const profile = await services.person.linkedin.enrich({ url: linkedinUrl });
 
-console.log(`Total Experience: ${profile.total_experience_duration}`);
-console.log(`Total Months: ${profile.total_experience_duration_months}`);
+// Calculate experience metrics for qualification
+const totalYears = Math.floor((profile.total_experience_duration_months || 0) / 12);
+const currentJob = profile.experience?.find((job) => job.date_to === null);
+const seniorityLevel = currentJob?.management_level || "Individual Contributor";
+
+// Qualify based on experience
+let qualification = "Not Qualified";
+if (totalYears >= 10 && seniorityLevel.includes("Director")) {
+   qualification = "High Priority";
+} else if (totalYears >= 5 && seniorityLevel.includes("Manager")) {
+   qualification = "Medium Priority";
+}
+
+ctx.thisRow.set({
+   "Years of Experience": totalYears,
+   Seniority: seniorityLevel,
+   Qualification: qualification,
+});
 ```

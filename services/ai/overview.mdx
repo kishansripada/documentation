@@ -11,51 +11,57 @@ AI services provide powerful tools for generating content, extracting structured
 ## Choosing the Right Tool
 
 <AccordionGroup>
-  <Accordion title="📊 Extracting Data from a Specific Website" icon="globe">
+  <Accordion title="📊 Extracting Data from a Prospect's Website" icon="globe">
     **Use: Scrape + Generate Object**
     
-    Perfect for gathering structured information from a known website. For example:
-    - "How many physicians are at this doctor's office?"
-    - "What are the product prices on this page?"
-    - "Extract all team members from the about page"
+    Perfect for gathering structured sales intelligence from a prospect's website. For example:
+    - "Who are the decision makers on their team page?"
+    - "What products/services does this company offer?"
+    - "Extract company size and location from their about page"
     
     ```typescript
-    const scraped = await services.scrape.website({ url: "https://example.com" });
+    const website = ctx.thisRow.get("Website");
+    const scraped = await services.scrape.website({ url: `${website}/about` });
     const data = await services.ai.generateObject({
-      prompt: `How many physicians work here? ${scraped.markdown}`,
-      schema: z.object({ physician_count: z.number(), names: z.array(z.string()) })
+      prompt: `Extract company info and decision makers: ${scraped.markdown}`,
+      schema: z.object({ 
+        employee_count: z.string().optional(), 
+        decision_makers: z.array(z.object({ name: z.string(), title: z.string() }))
+      })
     });
     ```
   </Accordion>
 
-  <Accordion title="🔍 Answering Complex Questions (Not on a Specific Site)" icon="magnifying-glass">
+  <Accordion title="🔍 Researching Prospects Across Multiple Sources" icon="magnifying-glass">
     **Use: Generate Text with Web Search**
     
-    Best for questions that require searching across multiple sources. For example:
-    - "What are the top CRM tools for small businesses?"
-    - "How does quantum computing work?"
-    - "What are the latest developments in renewable energy?"
+    Best for prospect research that requires searching across multiple sources. For example:
+    - "What are the latest funding rounds in the fintech space?"
+    - "What challenges is the healthcare industry facing?"
+    - "What are recent news about [Company Name]?"
     
     ```typescript
+    const company = ctx.thisRow.get("Company");
     const result = await services.ai.generateText({
-      prompt: "What are the best practices for API security in 2024?",
+      prompt: `What are the latest news, funding, and developments for ${company}?`,
       model: "claude-sonnet-4-5-20250929",
       enableWebSearch: true
     });
     ```
   </Accordion>
 
-  <Accordion title="📚 Deep, Comprehensive Research" icon="book">
+  <Accordion title="📚 Deep Account & Market Research" icon="book">
     **Use: Generate Research**
     
-    For intensive research requiring thorough analysis across many sources. For example:
-    - "Comprehensive market analysis of the EV industry"
-    - "Due diligence report on Company X"
-    - "Complete competitive analysis of top 5 CRM platforms"
+    For intensive research on high-value prospects or market analysis. For example:
+    - "Comprehensive account research on [Enterprise Prospect]"
+    - "Due diligence report on [Company] for enterprise deal"
+    - "Complete industry analysis of [Target Market]"
     
     ```typescript
+    const company = ctx.thisRow.get("Company");
     const result = await services.ai.generateResearch({
-      query: "Analyze the current state of the electric vehicle market with growth projections"
+      query: `Comprehensive research on ${company}: financials, leadership, products, pain points, and buying signals`
     });
     ```
   </Accordion>
@@ -91,40 +97,62 @@ AI services provide powerful tools for generating content, extracting structured
 
 ## Common Use Cases
 
-### Extract Structured Data
+### Extract Lead Data from Text
 
 ```typescript
+// Extract structured lead information from unstructured text
+const rawData = ctx.thisRow.get("Raw Contact Info");
+
 const result = await services.ai.generateObject({
-   prompt: "Extract contact information from: John Doe, john@example.com, (555) 123-4567",
+   prompt: `Extract contact information from: ${rawData}`,
    schema: z.object({
       name: z.string(),
       email: z.string(),
-      phone: z.string(),
+      phone: z.string().optional(),
+      company: z.string().optional(),
+      title: z.string().optional(),
    }),
 });
 
-console.log(result.object);
-// { name: "John Doe", email: "john@example.com", phone: "(555) 123-4567" }
+ctx.thisRow.set({
+   Name: result.object.name,
+   Email: result.object.email,
+   Company: result.object.company,
+});
 ```
 
-### Generate Content
+### Generate Personalized Outreach
 
 ```typescript
+// Generate personalized cold email for each prospect
+const name = ctx.thisRow.get("Name");
+const company = ctx.thisRow.get("Company");
+const title = ctx.thisRow.get("Title");
+const painPoint = ctx.thisRow.get("Pain Point");
+
 const result = await services.ai.generateText({
-   prompt: "Write a professional email introducing our new product",
+   prompt: `Write a personalized cold email to ${name}, ${title} at ${company}. 
+   Address their challenge: ${painPoint}. 
+   Our solution: AI-powered sales enrichment. Keep under 100 words.`,
    model: "gpt-5-mini",
 });
 
-console.log(result.text);
+return result.text;
 ```
 
-### Deep Research
+### Deep Account Research
 
 ```typescript
+// Comprehensive research for enterprise deal
+const company = ctx.thisRow.get("Company");
+
 const result = await services.ai.generateResearch({
-   query: "What are the latest trends in AI for 2024?",
+   query: `Research ${company}: recent news, financials, leadership team, 
+   products, market position, and potential pain points for sales outreach`,
 });
 
-console.log(result.content); // Comprehensive research report
-console.log(`Cost: $${result.cost}`);
+ctx.thisRow.set({
+   "Account Intelligence": result.content,
+   "Research Cost": result.cost,
+});
 ```
