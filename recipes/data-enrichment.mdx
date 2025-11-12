@@ -1,0 +1,326 @@
+---
+title: "Data Enrichment Recipes"
+description: "Find websites, contact info, and enrich company/person data"
+---
+
+# Data Enrichment
+
+Common patterns for enriching your data with websites, contact information, and company details.
+
+## Find Company Website
+
+**Use Case**: You have a company name and need to find their official website.
+
+```javascript
+const name = await ctx.thisRow.get("Company Name");
+const city = await ctx.thisRow.get("City"); // Optional but improves accuracy
+
+// Search for the company's website
+const searchResults = await services.web.search({
+   query: `${name}${city ? ` ${city}` : ""} company website`,
+});
+
+// Try knowledge graph first (most reliable)
+if (searchResults.knowledgeGraph?.website) {
+   return searchResults.knowledgeGraph.website;
+}
+
+// Fallback to first search result
+if (searchResults.results?.[0]?.link) {
+   return searchResults.results[0].link;
+}
+
+return "";
+```
+
+**Best Practices**:
+
+-  Knowledge graph results are more reliable than organic search results
+-  Include location data when available for better accuracy
+-  Filter out directory sites (Yelp, LinkedIn, etc.) if needed
+
+---
+
+## Get Contact Information
+
+**Use Case**: Find email and phone number for a person using their LinkedIn profile.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("LinkedIn URL");
+const firstName = await ctx.thisRow.get("First Name");
+const lastName = await ctx.thisRow.get("Last Name");
+const company = await ctx.thisRow.get("Company");
+
+if (!linkedinUrl) {
+   return { email: "", phone: "" };
+}
+
+const contactInfo = await services.person.contact.get({
+   firstName,
+   lastName,
+   company,
+   linkedinUrl,
+   required: ["email", "phone"],
+});
+
+// Prioritize work email over personal
+const bestEmail = contactInfo.work_emails?.[0] || contactInfo.personal_emails?.[0] || "";
+
+// Prioritize work phone over personal
+const bestPhone = contactInfo.work_phones?.[0] || contactInfo.personal_phones?.[0] || "";
+
+return { email: bestEmail, phone: bestPhone };
+```
+
+**Best Practices**:
+
+-  Always prioritize work contact info for B2B outreach
+-  Provide as much context as possible (name, company) for better results
+-  Handle missing data gracefully
+
+---
+
+## Find LinkedIn Profile URL
+
+**Use Case**: Find someone's LinkedIn profile from their name and company.
+
+```javascript
+const firstName = await ctx.thisRow.get("First Name");
+const lastName = await ctx.thisRow.get("Last Name");
+const company = await ctx.thisRow.get("Company");
+const title = await ctx.thisRow.get("Job Title");
+
+const linkedinUrl = await services.person.linkedin.findUrl({
+   name: `${firstName} ${lastName}`,
+   company: company,
+   title: title,
+});
+
+return linkedinUrl || "";
+```
+
+---
+
+## Enrich LinkedIn Profile Data
+
+**Use Case**: Get detailed information from a LinkedIn profile.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("LinkedIn URL");
+
+if (!linkedinUrl) {
+   return null;
+}
+
+const profile = await services.person.linkedin.enrich({
+   url: linkedinUrl,
+});
+
+// Store enriched data
+ctx.thisRow.set({
+   "Full Name": profile.full_name,
+   Headline: profile.headline,
+   "Current Title": profile.job_title,
+   Location: profile.location_city,
+   "Years of Experience": Math.floor((profile.total_experience_duration_months || 0) / 12),
+});
+
+return profile;
+```
+
+**What you get**:
+
+-  Full name, headline, current job title
+-  Location and experience duration
+-  Work history and education
+-  Skills and connections count
+
+---
+
+## Find Company LinkedIn URL
+
+**Use Case**: Find a company's LinkedIn page from their name or website.
+
+```javascript
+const companyName = await ctx.thisRow.get("Company");
+const website = await ctx.thisRow.get("Website");
+
+const linkedinUrl = await services.company.linkedin.findUrl({
+   name: companyName,
+   website: website,
+});
+
+return linkedinUrl || "";
+```
+
+---
+
+## Enrich Company Data
+
+**Use Case**: Get detailed company information from LinkedIn.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("Company LinkedIn URL");
+
+if (!linkedinUrl) {
+   return null;
+}
+
+// Basic enrichment
+const companyData = await services.company.linkedin.enrich({
+   url: linkedinUrl,
+});
+
+ctx.thisRow.set({
+   "Employee Count": companyData.size_employees_count,
+   Industry: companyData.industry,
+   "HQ Location": companyData.location_hq_country,
+   Founded: companyData.founded,
+});
+
+return companyData;
+```
+
+**Extended Enrichment** (for high-value accounts):
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("Company LinkedIn URL");
+
+// Get extended data (more detailed but slower)
+const extendedData = await services.company.linkedin.enrich({
+   url: linkedinUrl,
+   enrichLevel: "extended",
+});
+
+ctx.thisRow.set({
+   "Active Jobs": extendedData.active_job_postings_count,
+   "Employee Review Score": extendedData.company_employee_reviews_aggregate_score,
+   "Growth Signal": extendedData.active_job_postings_count > 10 ? "High Growth" : "Stable",
+});
+```
+
+---
+
+## Parse Address
+
+**Use Case**: Parse a full address string into structured components.
+
+```javascript
+const streetAddress = await ctx.thisRow.get("Street Address");
+const city = await ctx.thisRow.get("City");
+const state = await ctx.thisRow.get("State");
+const zipCode = await ctx.thisRow.get("Zip Code");
+
+// Build full address string
+const fullAddress = [streetAddress, city, state, zipCode].filter(Boolean).join(", ");
+
+// Parse into structured components
+const parsedLocation = await services.geo.parseAddress({
+   address: fullAddress,
+});
+
+// Returns:
+// {
+//   streetNumber: "123",
+//   route: "Main St",
+//   city: "New York",
+//   state: "NY",
+//   zipCode: "10001",
+//   latitude: 40.7128,
+//   longitude: -74.0060
+// }
+
+return parsedLocation;
+```
+
+---
+
+## Normalize Website Domain
+
+**Use Case**: Clean and normalize website URLs to consistent domain format.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+function normalizeWebsite(url) {
+   if (!url) return "";
+
+   // Add protocol if missing
+   let normalized = url.trim();
+   if (!/^https?:\/\//i.test(normalized)) {
+      normalized = "https://" + normalized;
+   }
+
+   try {
+      const urlObj = new URL(normalized);
+      // Remove www. and get just the domain
+      return urlObj.hostname.replace(/^www\./i, "");
+   } catch {
+      return "";
+   }
+}
+
+return normalizeWebsite(website);
+```
+
+---
+
+## Get Phone from Knowledge Graph
+
+**Use Case**: Extract phone number from Google search results.
+
+```javascript
+const name = await ctx.thisRow.get("Company Name");
+const city = await ctx.thisRow.get("City");
+
+const searchResults = await services.web.search({
+   query: `${name} ${city}`,
+   advance_search: true,
+});
+
+const phone = searchResults?.knowledgeGraph?.phone;
+
+// Validate phone number
+if (!phone || typeof phone !== "string") {
+   return "";
+}
+
+// Filter out invalid data
+if (phone.includes("://") || phone.includes("Hours:") || !/\d/.test(phone)) {
+   return "";
+}
+
+return phone;
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Multiple Data Sources">
+    Always have fallback options. Try knowledge graph first, then organic results, then alternative sources.
+  </Accordion>
+
+{" "}
+
+<Accordion title="Filter Directory Sites">
+   Exclude Yelp, LinkedIn, Facebook, and other directory sites when looking for official websites.
+</Accordion>
+
+{" "}
+
+<Accordion title="Prioritize Data Quality">
+   Work emails are better than personal. Knowledge graph data is more reliable than scraped data.
+</Accordion>
+
+{" "}
+
+<Accordion title="Handle Missing Data Gracefully">
+   Always check if data exists before using it. Return empty strings or null rather than throwing errors.
+</Accordion>
+
+  <Accordion title="Normalize Data Consistently">
+    Clean and normalize data (URLs, phone numbers, names) to a consistent format.
+  </Accordion>
+</AccordionGroup>

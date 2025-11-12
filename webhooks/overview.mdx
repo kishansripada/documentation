@@ -1,0 +1,78 @@
+---
+title: "Webhooks Overview"
+description: "Receive and process HTTP requests in your spreadsheet"
+icon: "webhook"
+---
+
+## Introduction
+
+Webhooks allow your spreadsheet to receive HTTP requests from external services. Create a webhook column, get a unique URL, and process incoming data with custom code.
+
+## The Webhook Object
+
+In webhook columns, you have access to a `webhook` object with request information:
+
+```typescript
+webhook.method      // HTTP method (GET, POST, PUT, etc.)
+webhook.url         // Full request URL
+webhook.headers     // Request headers as key-value pairs
+webhook.query       // Query parameters as key-value pairs
+webhook.body        // Request body (parsed JSON or raw data)
+webhook.receivedAt  // Timestamp when request was received
+webhook.ip          // IP address of the requester
+```
+
+## Quick Example
+
+```typescript
+// Validate required fields
+if (!webhook.body.email || !webhook.body.name) {
+   return { success: false, error: "Email and name required" };
+}
+
+// Add webhook data to sheet
+webhook.addRootFieldsToSheet("Leads", true);
+
+return { success: true };
+```
+
+## Key Method
+
+### webhook.addRootFieldsToSheet()
+
+Automatically maps webhook body fields to sheet columns and creates a new row.
+
+```typescript
+webhook.addRootFieldsToSheet(sheetName: string, create?: boolean): void
+```
+
+**Example:**
+
+```typescript
+// Webhook receives: { "name": "John", "email": "john@example.com" }
+
+// Add to Leads sheet, creating new columns if needed
+webhook.addRootFieldsToSheet("Leads", true);
+```
+
+## Context Availability
+
+<Note>
+   In webhook columns, `ctx.thisRow` and `ctx.thisCell` are **not available**. Use the `webhook` object instead.
+</Note>
+
+**Available:** `webhook`, `ctx.sheet()`, `ctx.getRowByValue()`, `ctx.utils`, `services`
+
+**Not available:** `ctx.thisRow`, `ctx.thisCell`
+
+## Learn More
+
+<CardGroup cols={2}>
+   <Card title="Setup Guide" icon="play" href="/webhooks/setup">
+      Create and test webhooks
+   </Card>
+   <Card title="API Reference" icon="book" href="/webhooks/reference">
+      Complete webhook API documentation
+   </Card>
+</CardGroup>
+

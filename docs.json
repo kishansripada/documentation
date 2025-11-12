@@ -11,7 +11,7 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guide",
+        "tab": "Docs",
         "groups": [
           {
             "group": "Getting Started",
@@ -83,6 +83,31 @@
                   "services/geo/parse-address"
                 ]
               }
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "webhooks/overview",
+              "webhooks/setup",
+              "webhooks/reference"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Recipes",
+        "groups": [
+          {
+            "group": "Common Patterns",
+            "pages": [
+              "recipes/overview",
+              "recipes/data-enrichment",
+              "recipes/web-research",
+              "recipes/lead-generation",
+              "recipes/email-personalization",
+              "recipes/crm-integration",
+              "recipes/data-validation"
             ]
           }
         ]

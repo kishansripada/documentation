@@ -1,0 +1,382 @@
+---
+title: "Web Research Recipes"
+description: "Research companies, analyze websites, and extract insights"
+---
+
+# Web Research
+
+Common patterns for researching companies and extracting information from websites.
+
+## Research Company with AI + Web Search
+
+**Use Case**: Research a company using AI with web search capabilities to find specific information.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+const companyName = await ctx.thisRow.get("Company Name");
+
+if (!website) {
+   return "No website provided";
+}
+
+// Use AI with web search to research the company
+const research = await services.ai.generateText({
+   prompt: `Research ${companyName} at ${website}
+
+Find concrete, verifiable signals about:
+- Recent news and developments
+- Funding rounds or financial updates
+- Technology stack and tools they use
+- Growth signals (hiring, expansion, etc.)
+- Pain points or challenges they're facing
+
+Cite sources for each finding.`,
+
+   model: "claude-sonnet-4-5-20250929",
+   enableWebSearch: true,
+});
+
+return research.text;
+```
+
+**Best Practices**:
+
+-  Be specific about what you're looking for
+-  Request source citations for verifiability
+-  Use for high-value prospects where deep research is worth the cost
+
+---
+
+## Scrape and Analyze Website
+
+**Use Case**: Scrape a website and use AI to extract specific information.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+if (!website) {
+   return null;
+}
+
+// Scrape the website
+const scraped = await services.scrape.website({
+   url: website,
+   params: { limit: 1 }, // Just scrape homepage
+});
+
+// Use AI to analyze the content
+const analysis = await services.ai.generateObject({
+   prompt: `Analyze this website and determine if it's a medical clinic that provides direct patient care.
+
+EXCLUDE: Medical device companies, pharmaceutical companies, medical software companies
+INCLUDE: Medical clinics, hospitals, doctor offices, urgent care centers
+
+Website content:
+${scraped.markdown}`,
+
+   schema: z.object({
+      isClinic: z.boolean(),
+      clinicType: z.string().optional(),
+      reasoning: z.string(),
+   }),
+
+   model: "gpt-5-mini",
+});
+
+return analysis.object;
+```
+
+**Pattern**: Scrape first, then analyze with AI for structured extraction.
+
+---
+
+## Find Specific Pages on a Domain
+
+**Use Case**: Search for specific pages (like careers, pricing, contact) on a company's website.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+// Extract domain from website
+const domain = website
+   ?.replace(/^https?:\/\//, "")
+   .replace(/^www\./, "")
+   .split("/")[0];
+
+if (!domain) {
+   return null;
+}
+
+// Search for careers page on the domain
+const results = await services.web.search({
+   query: "careers",
+   domain: domain,
+});
+
+// Get the most relevant result
+const careersUrl = results.results?.[0]?.link || null;
+
+return careersUrl;
+```
+
+**Variations**:
+
+-  Search for "pricing" to find pricing page
+-  Search for "contact" to find contact page
+-  Search for "about" to find about page
+-  Search for "locations" to find locations page
+
+---
+
+## Extract Company Information from Website
+
+**Use Case**: Scrape a company's website and extract structured information.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+// Scrape the about page
+const scraped = await services.scrape.website({
+   url: `${website}/about`,
+   params: { limit: 1 },
+});
+
+// Extract structured company data
+const companyInfo = await services.ai.generateObject({
+   prompt: `Extract company information from this about page:
+
+${scraped.markdown}`,
+
+   schema: z.object({
+      companyName: z.string(),
+      foundedYear: z.number().optional(),
+      headquarters: z.string().optional(),
+      employeeCount: z.string().optional(),
+      description: z.string(),
+      keyExecutives: z
+         .array(
+            z.object({
+               name: z.string(),
+               title: z.string(),
+            })
+         )
+         .optional(),
+   }),
+
+   model: "gpt-5-mini",
+});
+
+ctx.thisRow.set({
+   "Company Name": companyInfo.object.companyName,
+   Founded: companyInfo.object.foundedYear,
+   "HQ Location": companyInfo.object.headquarters,
+   Description: companyInfo.object.description,
+});
+
+return companyInfo.object;
+```
+
+---
+
+## Find and Scrape Multiple Pages
+
+**Use Case**: Use sitemap discovery to find relevant pages, then scrape them.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+const domain = website
+   ?.replace(/^https?:\/\//, "")
+   .replace(/^www\./, "")
+   .split("/")[0];
+
+if (!domain) {
+   return null;
+}
+
+// Find relevant pages on the domain
+const pages = await services.scrape.sitemap({
+   domain: domain,
+   keywords: ["team", "about", "leadership", "executives"],
+});
+
+// Scrape the top 3 most relevant pages
+const scrapedPages = await Promise.all(
+   pages.slice(0, 3).map((page) =>
+      services.scrape.website({
+         url: page.url,
+         params: { limit: 1 },
+      })
+   )
+);
+
+// Combine all content
+const combinedContent = scrapedPages.map((result) => result.markdown).join("\n\n---\n\n");
+
+// Extract decision makers from all pages
+const decisionMakers = await services.ai.generateObject({
+   prompt: `Extract all executives and decision makers from these pages:
+
+${combinedContent}`,
+
+   schema: z.object({
+      decisionMakers: z.array(
+         z.object({
+            name: z.string(),
+            title: z.string(),
+            department: z.string().optional(),
+         })
+      ),
+   }),
+
+   model: "gpt-5-mini",
+});
+
+return decisionMakers.object;
+```
+
+---
+
+## Extract Social Media Links
+
+**Use Case**: Automatically extract social media profiles from a website.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+const scraped = await services.scrape.website({
+   url: website,
+   params: { limit: 1 },
+});
+
+// Social URLs are automatically extracted
+const social = scraped.socialUrls;
+
+ctx.thisRow.set({
+   LinkedIn: social.linkedinCompany[0] || "",
+   Twitter: social.twitterUser[0] || "",
+   Facebook: social.facebookProfile[0] || "",
+   Instagram: social.instagramProfile[0] || "",
+   Email: social.emailGeneral[0] || "",
+   Phone: social.phoneGeneral[0] || "",
+});
+
+return social;
+```
+
+**What's extracted automatically**:
+
+-  LinkedIn profiles and company pages
+-  Twitter/X profiles
+-  Facebook pages
+-  Instagram profiles
+-  YouTube channels
+-  TikTok profiles
+-  Email addresses
+-  Phone numbers
+
+---
+
+## Detect Technology Stack
+
+**Use Case**: Analyze a website to detect which technologies they use.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+const scraped = await services.scrape.website({
+   url: website,
+   params: { limit: 1 },
+});
+
+// Combine markdown and links for analysis
+const allText = (scraped.markdown + " " + scraped.data[0].links.join(" ")).toLowerCase();
+
+// Check for specific technologies
+const technologies = {
+   Shopify: allText.includes("shopify.com") || allText.includes("cdn.shopify.com"),
+   WordPress: allText.includes("wp-content") || allText.includes("wordpress"),
+   HubSpot: allText.includes("hubspot.com") || allText.includes("hs-scripts.com"),
+   Salesforce: allText.includes("salesforce.com") || allText.includes("force.com"),
+   Intercom: allText.includes("intercom.io"),
+   Stripe: allText.includes("stripe.com") || allText.includes("js.stripe.com"),
+};
+
+const foundTech = Object.entries(technologies)
+   .filter(([tech, found]) => found)
+   .map(([tech]) => tech);
+
+return foundTech;
+```
+
+---
+
+## Research with Deep Dive
+
+**Use Case**: Comprehensive research for high-value prospects.
+
+```javascript
+const companyName = await ctx.thisRow.get("Company Name");
+const website = await ctx.thisRow.get("Website");
+
+// Use the research service for comprehensive analysis
+const research = await services.ai.generateResearch({
+   query: `Comprehensive research on ${companyName} (${website}):
+  
+  - Company overview and history
+  - Recent news and developments
+  - Leadership team and key decision makers
+  - Products and services
+  - Market position and competitors
+  - Technology stack
+  - Growth signals (hiring, funding, expansion)
+  - Potential pain points for sales outreach`,
+});
+
+ctx.thisRow.set({
+   "Research Report": research.content,
+   "Research Cost": research.cost,
+   "Last Researched": new Date().toISOString(),
+});
+
+return research.content;
+```
+
+**When to use**:
+
+-  High-value enterprise prospects
+-  Complex buying committees
+-  Strategic accounts
+-  When you need comprehensive intelligence
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Scrape First, Then Analyze">
+    Use `services.scrape.website()` to get content, then `services.ai.generateObject()` to extract structured data. This is more accurate than web search for targeted extraction.
+  </Accordion>
+
+{" "}
+<Accordion title="Use Sitemap for Multi-Page Scraping">
+   Use `services.scrape.sitemap()` to find relevant pages before scraping them. It ranks pages by relevance to your
+   keywords.
+</Accordion>
+
+{" "}
+<Accordion title="Limit Scraping Depth">
+   Default to `limit: 1` for single page scraping. Only increase when you specifically need to follow links.
+</Accordion>
+
+{" "}
+<Accordion title="Combine Multiple Sources">
+   For best results, combine website scraping with web search and LinkedIn data.
+</Accordion>
+
+{" "}
+<Accordion title="Handle Scraping Failures">Always check if scraping succeeded before processing the data.</Accordion>
+
+  <Accordion title="Use Research Service for Deep Dives">
+    For high-value prospects, use `services.ai.generateResearch()` for comprehensive intelligence.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,186 @@
+---
+title: "Webhook API Reference"
+description: "Complete API reference for the webhook object"
+icon: "book"
+---
+
+## Webhook Object Properties
+
+### webhook.method
+
+```typescript
+webhook.method: string
+```
+
+The HTTP method of the request (`GET`, `POST`, `PUT`, `DELETE`, etc.).
+
+---
+
+### webhook.url
+
+```typescript
+webhook.url: string
+```
+
+The full URL of the webhook request.
+
+---
+
+### webhook.headers
+
+```typescript
+webhook.headers: Record<string, string>
+```
+
+Request headers as key-value pairs. Header names are lowercase.
+
+**Example:**
+
+```typescript
+const apiKey = webhook.headers["x-api-key"];
+const contentType = webhook.headers["content-type"];
+```
+
+---
+
+### webhook.query
+
+```typescript
+webhook.query: Record<string, string>
+```
+
+URL query parameters as key-value pairs.
+
+**Example:**
+
+```typescript
+// URL: https://api.orangeslice.ai/webhook/abc?source=facebook
+const source = webhook.query.source;  // "facebook"
+```
+
+---
+
+### webhook.body
+
+```typescript
+webhook.body: any
+```
+
+The parsed request body. Type depends on `Content-Type`:
+- **application/json** - JavaScript object
+- **application/x-www-form-urlencoded** - Key-value pairs
+- **text/plain** - String
+
+**Example:**
+
+```typescript
+const email = webhook.body.email;
+const name = webhook.body.name;
+```
+
+---
+
+### webhook.receivedAt
+
+```typescript
+webhook.receivedAt: number
+```
+
+Unix timestamp (milliseconds) when the webhook was received.
+
+**Example:**
+
+```typescript
+const date = new Date(webhook.receivedAt);
+const iso = date.toISOString();
+```
+
+---
+
+### webhook.ip
+
+```typescript
+webhook.ip?: string
+```
+
+The IP address of the requester (optional).
+
+---
+
+### webhook.colId
+
+```typescript
+webhook.colId: string
+```
+
+The unique identifier (UUID) of the webhook column.
+
+---
+
+## Methods
+
+### webhook.addRootFieldsToSheet()
+
+Automatically maps webhook body fields to sheet columns and creates a new row.
+
+```typescript
+webhook.addRootFieldsToSheet(sheetName: string, create?: boolean): void
+```
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `sheetName` | `string` | Yes | Name of the sheet to add the row to |
+| `create` | `boolean` | No | If `true`, creates columns that don't exist. Default: `false` |
+
+**Example:**
+
+```typescript
+// Webhook receives: { "name": "John", "email": "john@example.com" }
+
+// Add to Leads sheet, creating new columns if needed
+webhook.addRootFieldsToSheet("Leads", true);
+```
+
+**Notes:**
+- Only processes root-level fields (nested objects are not flattened)
+- Column names must match the keys in `webhook.body`
+- If `create` is `false` and a field doesn't have a matching column, it's ignored
+
+---
+
+## Context Availability
+
+### ✅ Available in Webhooks
+
+- `webhook` - Webhook object with request data
+- `ctx.sheet()` - Add rows to any sheet
+- `ctx.getRowByValue()` - Query existing rows
+- `ctx.getRowById()` - Get row by ID
+- `ctx.utils` - Utility functions
+- `services` - All enrichment services
+
+### ❌ Not Available in Webhooks
+
+- `ctx.thisRow` - No current row context
+- `ctx.thisCell` - No current cell context
+
+---
+
+## Type Definition
+
+```typescript
+interface Webhook {
+   colId: string;
+   method: string;
+   url: string;
+   headers: Record<string, string>;
+   query: Record<string, string>;
+   body: any;
+   receivedAt: number;
+   ip?: string;
+   
+   addRootFieldsToSheet(sheetName: string, create?: boolean): void;
+}
+```

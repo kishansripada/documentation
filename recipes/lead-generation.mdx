@@ -1,0 +1,440 @@
+---
+title: 'Lead Generation Recipes'
+description: 'Build lists, qualify leads, and find decision makers'
+---
+
+# Lead Generation
+
+Common patterns for building lead lists, qualifying prospects, and finding decision makers.
+
+## Find Decision Makers at a Company
+
+**Use Case**: Get all employees from a company and filter for decision makers.
+
+```javascript
+const linkedinCompanyUrl = await ctx.thisRow.get('Company LinkedIn URL');
+const website = await ctx.thisRow.get("Website");
+
+// Get all employees
+const employees = await services.company.getEmployees({
+  linkedinCompanyUrl: linkedinCompanyUrl,
+  website: website,
+  options: {
+    onlyHigherLevel: true, // Only get senior employees
+    limit: 100
+  }
+});
+
+if (!employees || employees.length === 0) {
+  return [];
+}
+
+// Filter for decision makers using AI
+const results = await Promise.all(
+  employees.map(async (employee) => {
+    const title = employee.job_title || employee.title || '';
+    
+    if (!title) return { employee, isDecisionMaker: false };
+    
+    const result = await services.ai.generateObject({
+      prompt: `Is this a decision maker role? 
+
+Title: "${title}"
+
+Return true if: C-level (CEO, COO, CFO, CTO, CMO, etc.), VP, Director, Head of, or Owner.
+Return false for: Managers, Coordinators, Specialists, Analysts.`,
+      
+      schema: z.object({
+        isDecisionMaker: z.boolean()
+      }),
+      
+      model: 'gpt-5-mini'
+    });
+    
+    return { employee, isDecisionMaker: result.object.isDecisionMaker };
+  })
+);
+
+const decisionMakers = results
+  .filter(r => r.isDecisionMaker)
+  .map(r => r.employee);
+
+return decisionMakers;
+```
+
+**Best Practices**:
+- Set `onlyHigherLevel: true` to reduce API calls
+- Use AI to classify roles flexibly
+- Process in parallel with `Promise.all()`
+
+---
+
+## Qualify Job Title Against ICP
+
+**Use Case**: Check if a person's job title matches your Ideal Customer Profile.
+
+```javascript
+const jobTitle = await ctx.thisRow.get("Job Title");
+
+if (!jobTitle) {
+  return false;
+}
+
+const result = await services.ai.generateObject({
+  prompt: `Does this job title match our ICP?
+
+Job Title: "${jobTitle}"
+
+Our ICP: C-level executives, VPs, Directors, and Department Heads at companies with 50+ employees.
+
+Return true if they match, false otherwise.`,
+  
+  schema: z.object({
+    matches: z.boolean(),
+    reasoning: z.string()
+  }),
+  
+  model: "gpt-5-mini"
+});
+
+// Stop workflow if they don't match
+if (!result.object.matches) {
+  ctx.halt(result.object.reasoning);
+  return false;
+}
+
+return true;
+```
+
+**Variations**:
+- Different ICP criteria (company size, industry, role)
+- Industry-specific roles
+- Exclude certain titles or departments
+
+---
+
+## Qualify Company Against ICP
+
+**Use Case**: Determine if a company matches your ICP by analyzing their website.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+if (!website) {
+  return false;
+}
+
+// Scrape the website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 1 }
+});
+
+// Use AI to determine if company matches ICP
+const result = await services.ai.generateObject({
+  prompt: `Analyze this website and determine if the company matches our ICP.
+
+Our ICP:
+- B2B SaaS companies
+- 50-500 employees
+- Selling to enterprises
+- Based in North America
+
+Website content:
+${scraped.markdown.substring(0, 10000)}
+
+Determine if they match.`,
+  
+  schema: z.object({
+    matches: z.boolean(),
+    companyType: z.string(),
+    employeeEstimate: z.string().optional(),
+    confidence: z.enum(['high', 'medium', 'low']),
+    reasoning: z.string()
+  }),
+  
+  model: 'gpt-5-mini'
+});
+
+if (!result.object.matches) {
+  ctx.halt(`Not ICP: ${result.object.reasoning}`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Company Type": result.object.companyType,
+  "Employee Estimate": result.object.employeeEstimate,
+  "ICP Confidence": result.object.confidence
+});
+
+return true;
+```
+
+---
+
+## Find Hiring Signals
+
+**Use Case**: Check if a company is hiring for relevant roles as a buying signal.
+
+```javascript
+const website = await ctx.thisRow.get('Website');
+const domain = website?.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+
+if (!domain) {
+  return null;
+}
+
+// Find careers page
+const careerPage = await services.company.careers.findPage({
+  domain: domain
+});
+
+if (!careerPage?.url) {
+  return { hiring: false, relevantRoles: [] };
+}
+
+// Scrape job postings
+const jobs = await services.company.careers.scrapeJobs({
+  url: careerPage.url,
+  recent: "month" // Only recent postings
+});
+
+// Analyze for relevant roles
+const analysis = await services.ai.generateObject({
+  prompt: `Analyze these job postings for buying signals.
+
+We sell sales enablement software. Look for roles that indicate they're scaling their sales team:
+- Sales roles (AE, SDR, BDR, Sales Manager)
+- Revenue Operations
+- Sales Enablement
+- Sales Leadership
+
+Job titles:
+${jobs.map(j => j.title).join('\n')}
+
+Return relevant roles and whether this is a strong buying signal.`,
+  
+  schema: z.object({
+    hasRelevantRoles: z.boolean(),
+    relevantRoles: z.array(z.string()),
+    buyingSignalStrength: z.enum(['strong', 'medium', 'weak']),
+    reasoning: z.string()
+  }),
+  
+  model: 'gpt-5-mini'
+});
+
+ctx.thisRow.set({
+  "Total Open Roles": jobs.length,
+  "Relevant Roles": analysis.object.relevantRoles.join(', '),
+  "Buying Signal": analysis.object.buyingSignalStrength,
+  "Hiring Status": analysis.object.hasRelevantRoles ? "Actively Hiring" : "Stable"
+});
+
+return analysis.object;
+```
+
+---
+
+## Build Company List from Search
+
+**Use Case**: Search for companies matching specific criteria and build a list.
+
+```javascript
+const searchQuery = await ctx.thisRow.get("Search Query");
+// e.g., "B2B SaaS companies in San Francisco"
+
+// Search for companies
+const results = await services.web.search({
+  query: searchQuery
+});
+
+// Extract company websites from results
+const companies = results.results.slice(0, 10).map(result => ({
+  name: result.title,
+  website: result.link,
+  snippet: result.snippet
+}));
+
+// Add each company to a sheet
+const companiesSheet = await ctx.sheet("Companies");
+
+for (const company of companies) {
+  await companiesSheet.addRow({
+    "Name": company.name,
+    "Website": company.website,
+    "Description": company.snippet,
+    "Source": "Web Search"
+  });
+}
+
+return `Added ${companies.length} companies`;
+```
+
+---
+
+## Create Contacts from Company Employees
+
+**Use Case**: Extract decision makers from a company and create contact records.
+
+```javascript
+const companyName = await ctx.thisRow.get("Company Name");
+const companyLinkedin = await ctx.thisRow.get("Company LinkedIn URL");
+const website = await ctx.thisRow.get("Website");
+
+// Get employees
+const employees = await services.company.getEmployees({
+  linkedinCompanyUrl: companyLinkedin,
+  website: website,
+  options: {
+    onlyHigherLevel: true,
+    limit: 50
+  }
+});
+
+// Filter for decision makers (C-level, VPs, Directors)
+const decisionMakers = employees.filter(emp => 
+  emp.job_title?.match(/(CEO|CTO|CFO|CMO|COO|VP|Vice President|Director|Head of)/i)
+);
+
+// Create contact records
+const contactsSheet = await ctx.sheet("Contacts");
+
+for (const dm of decisionMakers.slice(0, 10)) {
+  const row = await contactsSheet.addRow({
+    "Name": dm.name || dm.full_name,
+    "Title": dm.job_title || dm.title,
+    "Company": companyName,
+    "LinkedIn URL": dm.linkedinUrl || dm.websites_linkedin,
+    "Source": "Company Employee List"
+  });
+  
+  // Run the row to trigger enrichment
+  if (row.wasCreated) {
+    await row.run();
+  }
+}
+
+ctx.thisRow.set({
+  "Contacts Created": Math.min(decisionMakers.length, 10),
+  "Status": "Contacts Extracted"
+});
+
+return decisionMakers.length;
+```
+
+---
+
+## Enrich Leads with Company Data
+
+**Use Case**: For each contact, look up their company and enrich with company data.
+
+```javascript
+const company = await ctx.thisRow.get("Company");
+
+// Find company LinkedIn
+const companyLinkedinUrl = await services.company.linkedin.findUrl({
+  name: company
+});
+
+if (!companyLinkedinUrl) {
+  return null;
+}
+
+// Enrich company data
+const companyData = await services.company.linkedin.enrich({
+  url: companyLinkedinUrl
+});
+
+// Store company data on the contact record
+ctx.thisRow.set({
+  "Company LinkedIn": companyLinkedinUrl,
+  "Company Size": companyData.size_employees_count,
+  "Company Industry": companyData.industry,
+  "Company Location": companyData.location_hq_country,
+  "Company Founded": companyData.founded
+});
+
+return companyData;
+```
+
+---
+
+## Score Leads
+
+**Use Case**: Score leads based on multiple signals.
+
+```javascript
+const companySize = await ctx.thisRow.get("Company Size");
+const industry = await ctx.thisRow.get("Industry");
+const jobTitle = await ctx.thisRow.get("Job Title");
+const hasEmail = await ctx.thisRow.get("Email");
+const activeJobs = await ctx.thisRow.get("Active Job Postings");
+
+let score = 0;
+
+// Company size scoring
+if (companySize >= 100 && companySize <= 1000) score += 30;
+else if (companySize >= 50) score += 20;
+else if (companySize >= 20) score += 10;
+
+// Industry scoring
+const targetIndustries = ['Software', 'Technology', 'SaaS', 'Internet'];
+if (targetIndustries.some(ind => industry?.includes(ind))) score += 20;
+
+// Job title scoring
+if (jobTitle?.match(/(CEO|CTO|CFO|VP|Vice President)/i)) score += 30;
+else if (jobTitle?.match(/(Director|Head of)/i)) score += 20;
+else if (jobTitle?.match(/(Manager|Lead)/i)) score += 10;
+
+// Contact info scoring
+if (hasEmail) score += 15;
+
+// Buying signal scoring
+if (activeJobs > 10) score += 15;
+else if (activeJobs > 5) score += 10;
+
+// Determine grade
+let grade;
+if (score >= 80) grade = 'A';
+else if (score >= 60) grade = 'B';
+else if (score >= 40) grade = 'C';
+else grade = 'D';
+
+ctx.thisRow.set({
+  "Lead Score": score,
+  "Lead Grade": grade
+});
+
+return { score, grade };
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use AI for Flexible Qualification">
+    Let AI handle complex qualification logic rather than writing rigid rules. It adapts better to edge cases.
+  </Accordion>
+
+  <Accordion title="Filter Early with ctx.halt()">
+    Disqualify leads as early as possible using `ctx.halt()` to save on downstream enrichment costs.
+  </Accordion>
+
+  <Accordion title="Batch Process with Promise.all()">
+    Process multiple leads in parallel for better performance when doing AI classification.
+  </Accordion>
+
+  <Accordion title="Track Confidence Scores">
+    Return confidence scores from AI to help prioritize leads.
+  </Accordion>
+
+  <Accordion title="Combine Multiple Signals">
+    Use multiple data points (job title, company size, technology, hiring) for better qualification.
+  </Accordion>
+
+  <Accordion title="Create Related Records">
+    Use `ctx.sheet()` and `addRow()` to create related contact records from company employee lists.
+  </Accordion>
+</AccordionGroup>

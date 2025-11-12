@@ -70,12 +70,39 @@ return linkedin;
 
 [Explore all available services →](/services/introduction)
 
-<CardGroup cols={2}>
+## The `webhook` Object: Receive External Data
+
+The **`webhook` object** allows your spreadsheet to receive HTTP requests from external services, forms, and APIs:
+
+```typescript
+// Receive form submissions or API webhooks
+console.log(`Received ${webhook.method} request from ${webhook.ip}`);
+
+// Automatically add webhook data to a sheet
+webhook.addRootFieldsToSheet("Leads", true);
+
+// Or process manually with custom logic
+await ctx.sheet("Leads").addRow({
+   email: webhook.body.email,
+   name: webhook.body.name,
+   source: webhook.query.source || "website",
+   received_at: new Date(webhook.receivedAt).toISOString(),
+});
+
+return { success: true };
+```
+
+[Learn about webhooks →](/webhooks/overview)
+
+<CardGroup cols={3}>
    <Card title="ctx Documentation" icon="code" href="/ctx/overview">
       Read/write cells, navigate sheets, and control workflows
    </Card>
    <Card title="services Documentation" icon="layer-group" href="/services/introduction">
       LinkedIn, contact info, web scraping, AI, and more
+   </Card>
+   <Card title="webhook Documentation" icon="webhook" href="/webhooks/overview">
+      Receive HTTP requests from external services
    </Card>
 </CardGroup>
 
@@ -135,6 +162,9 @@ Run operations on thousands of rows efficiently with:
    <Card title="Context Object" icon="table-rows" href="/ctx/this-row">
       Learn how to read and write data on rows
    </Card>
+   <Card title="Webhooks" icon="webhook" href="/webhooks/overview">
+      Receive data from external services and forms
+   </Card>
    <Card title="AI Services" icon="brain" href="/services/ai/overview">
       Generate text and structured data with AI
    </Card>
@@ -143,5 +173,8 @@ Run operations on thousands of rows efficiently with:
    </Card>
    <Card title="Web Scraping" icon="spider-web" href="/services/scrape/overview">
       Extract data from any website
+   </Card>
+   <Card title="Company Data" icon="building" href="/services/company/overview">
+      Enrich company profiles and find employees
    </Card>
 </CardGroup>

@@ -1,0 +1,436 @@
+---
+title: 'CRM Integration Recipes'
+description: 'Push data to HubSpot, Pipedrive, Instantly, and other platforms'
+---
+
+# CRM Integration
+
+Common patterns for pushing enriched data to CRMs and outreach platforms.
+
+## Push Company to HubSpot
+
+**Use Case**: Create or update a company record in HubSpot with enriched data.
+
+```javascript
+const HUBSPOT_TOKEN = process.env.HUBSPOT_TOKEN;
+
+const name = await ctx.thisRow.get('Company Name');
+const website = await ctx.thisRow.get('Website');
+const city = await ctx.thisRow.get('City');
+const state = await ctx.thisRow.get('State');
+const phone = await ctx.thisRow.get('Phone');
+const industry = await ctx.thisRow.get('Industry');
+const employeeCount = await ctx.thisRow.get('Employee Count');
+
+// Prepare domain for HubSpot
+let domain = '';
+if (website) {
+  try {
+    const url = website.startsWith('http') ? website : `https://${website}`;
+    domain = new URL(url).hostname.replace(/^www\./, '');
+  } catch (e) {
+    domain = String(website).replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+  }
+}
+
+const properties = {
+  name: name,
+  domain: domain || undefined,
+  city: city || undefined,
+  state: state || undefined,
+  phone: phone || undefined,
+  industry: industry || undefined,
+  numberofemployees: employeeCount || undefined
+};
+
+// Remove undefined values
+const cleanedProperties = {};
+for (const [key, value] of Object.entries(properties)) {
+  if (value !== undefined && value !== null && value !== '') {
+    cleanedProperties[key] = value;
+  }
+}
+
+// Search for existing company by domain
+let companyId = null;
+
+if (domain) {
+  const searchResponse = await fetch('https://api.hubapi.com/crm/v3/objects/companies/search', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      filterGroups: [{
+        filters: [{
+          propertyName: 'domain',
+          operator: 'EQ',
+          value: domain
+        }]
+      }],
+      limit: 1
+    })
+  });
+
+  if (searchResponse.ok) {
+    const searchData = await searchResponse.json();
+    if (searchData.results?.length > 0) {
+      companyId = searchData.results[0].id;
+    }
+  }
+}
+
+// Update or create company
+let response;
+if (companyId) {
+  // Update existing
+  response = await fetch(`https://api.hubapi.com/crm/v3/objects/companies/${companyId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ properties: cleanedProperties })
+  });
+} else {
+  // Create new
+  response = await fetch('https://api.hubapi.com/crm/v3/objects/companies', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ properties: cleanedProperties })
+  });
+}
+
+const data = await response.json();
+
+return {
+  hubspotId: data.id,
+  action: companyId ? 'updated' : 'created'
+};
+```
+
+---
+
+## Push Contact to HubSpot
+
+**Use Case**: Create or update a contact in HubSpot and associate with company.
+
+```javascript
+const HUBSPOT_TOKEN = process.env.HUBSPOT_TOKEN;
+
+const firstName = await ctx.thisRow.get('First Name');
+const lastName = await ctx.thisRow.get('Last Name');
+const email = await ctx.thisRow.get('Email');
+const phone = await ctx.thisRow.get('Phone');
+const jobTitle = await ctx.thisRow.get('Job Title');
+const linkedinUrl = await ctx.thisRow.get('LinkedIn URL');
+const companyId = await ctx.thisRow.get('HubSpot Company ID'); // From company push
+
+if (!email) {
+  return null;
+}
+
+const properties = {
+  firstname: firstName,
+  lastname: lastName,
+  email: email,
+  phone: phone || '',
+  jobtitle: jobTitle || '',
+  hs_linkedin_url: linkedinUrl || ''
+};
+
+// Search for existing contact by email
+const searchResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    filterGroups: [{
+      filters: [{
+        propertyName: 'email',
+        operator: 'EQ',
+        value: email
+      }]
+    }]
+  })
+});
+
+const searchData = await searchResponse.json();
+let contactId = null;
+
+if (searchData.results?.length > 0) {
+  // Update existing
+  contactId = searchData.results[0].id;
+  await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ properties })
+  });
+} else {
+  // Create new
+  const createResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ properties })
+  });
+  
+  const createData = await createResponse.json();
+  contactId = createData.id;
+}
+
+// Associate with company if we have both IDs
+if (contactId && companyId) {
+  await fetch(`https://api.hubapi.com/crm/v4/objects/contacts/${contactId}/associations/companies/${companyId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify([{
+      associationCategory: "HUBSPOT_DEFINED",
+      associationTypeId: 1
+    }])
+  });
+}
+
+return { contactId, companyId };
+```
+
+---
+
+## Push Lead to Instantly
+
+**Use Case**: Add a lead to an Instantly.ai email campaign with custom variables.
+
+```javascript
+const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY;
+const CAMPAIGN_ID = 'your-campaign-id';
+
+const email = await ctx.thisRow.get('Email');
+const firstName = await ctx.thisRow.get('First Name');
+const lastName = await ctx.thisRow.get('Last Name');
+const companyName = await ctx.thisRow.get('Company Name');
+const personalization = await ctx.thisRow.get('Email Personalization');
+
+if (!email) {
+  return null;
+}
+
+// Build payload
+const body = {
+  campaign: CAMPAIGN_ID,
+  email: email,
+  first_name: firstName || '',
+  last_name: lastName || '',
+  company_name: companyName || '',
+  skip_if_in_workspace: true, // Prevent duplicates
+  custom_variables: {
+    personalization: personalization || '',
+    companyName: companyName || ''
+  }
+};
+
+// Add lead to campaign
+const response = await fetch('https://api.instantly.ai/api/v2/leads', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${INSTANTLY_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(body)
+});
+
+const data = await response.json();
+
+return {
+  leadId: data?.id,
+  status: response.ok ? 'added' : 'failed'
+};
+```
+
+---
+
+## Push to Pipedrive
+
+**Use Case**: Create an organization in Pipedrive with enriched data.
+
+```javascript
+const PIPEDRIVE_API_TOKEN = process.env.PIPEDRIVE_API_TOKEN;
+
+const name = await ctx.thisRow.get('Company Name');
+const website = await ctx.thisRow.get('Website');
+const linkedinUrl = await ctx.thisRow.get('Company LinkedIn URL');
+
+if (!name) {
+  throw new Error("Missing company name");
+}
+
+const payload = {
+  name: name,
+  website: website || undefined,
+  linkedin: linkedinUrl || undefined
+};
+
+const response = await fetch(`https://api.pipedrive.com/v1/organizations?api_token=${PIPEDRIVE_API_TOKEN}`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
+
+const data = await response.json();
+
+if (!data?.success) {
+  throw new Error(`Pipedrive error: ${JSON.stringify(data)}`);
+}
+
+return {
+  pipedriveId: data.data.id,
+  url: `https://app.pipedrive.com/organization/${data.data.id}`
+};
+```
+
+---
+
+## Deduplication Pattern
+
+**Use Case**: Check if a record already exists before creating it.
+
+```javascript
+const email = await ctx.thisRow.get('Email');
+const HUBSPOT_TOKEN = process.env.HUBSPOT_TOKEN;
+
+// Search for existing contact
+const searchResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${HUBSPOT_TOKEN}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    filterGroups: [{
+      filters: [{
+        propertyName: 'email',
+        operator: 'EQ',
+        value: email
+      }]
+    }]
+  })
+});
+
+const searchData = await searchResponse.json();
+
+if (searchData.results?.length > 0) {
+  // Contact exists - halt workflow
+  ctx.halt('Contact already exists in HubSpot');
+  return { exists: true, id: searchData.results[0].id };
+}
+
+// Contact doesn't exist - continue with creation
+return { exists: false };
+```
+
+---
+
+## Push to Multiple CRMs
+
+**Use Case**: Push the same data to multiple CRMs in parallel.
+
+```javascript
+const companyName = await ctx.thisRow.get('Company Name');
+const website = await ctx.thisRow.get('Website');
+const email = await ctx.thisRow.get('Email');
+
+// Push to multiple CRMs in parallel
+const [hubspotResult, pipedriveResult, instantlyResult] = await Promise.all([
+  // HubSpot
+  (async () => {
+    const response = await fetch('https://api.hubapi.com/crm/v3/objects/companies', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HUBSPOT_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        properties: { name: companyName, domain: website }
+      })
+    });
+    return response.json();
+  })(),
+  
+  // Pipedrive
+  (async () => {
+    const response = await fetch(`https://api.pipedrive.com/v1/organizations?api_token=${process.env.PIPEDRIVE_API_TOKEN}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: companyName, website: website })
+    });
+    return response.json();
+  })(),
+  
+  // Instantly
+  (async () => {
+    const response = await fetch('https://api.instantly.ai/api/v2/leads', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        campaign: 'your-campaign-id',
+        email: email,
+        company_name: companyName
+      })
+    });
+    return response.json();
+  })()
+]);
+
+return {
+  hubspot: hubspotResult.id,
+  pipedrive: pipedriveResult.data?.id,
+  instantly: instantlyResult.id
+};
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Deduplicate">
+    Search for existing records before creating new ones to avoid duplicates.
+  </Accordion>
+
+  <Accordion title="Use Environment Variables">
+    Store API keys in environment variables, never hardcode them.
+  </Accordion>
+
+  <Accordion title="Handle Errors Gracefully">
+    Check response status and handle errors without breaking the workflow.
+  </Accordion>
+
+  <Accordion title="Associate Related Records">
+    Link contacts to companies, deals to contacts, etc. for proper CRM structure.
+  </Accordion>
+
+  <Accordion title="Clean Data Before Pushing">
+    Remove undefined/null values and normalize data before sending to CRM.
+  </Accordion>
+
+  <Accordion title="Batch When Possible">
+    Use Promise.all() to push to multiple systems in parallel.
+  </Accordion>
+</AccordionGroup>
+

@@ -1,0 +1,783 @@
+---
+title: 'Data Validation Recipes'
+description: 'Validate and filter data based on ICP criteria'
+---
+
+# Data Validation
+
+Common patterns for validating data quality and filtering based on business rules.
+
+## Validate Company Against ICP
+
+**Use Case**: Check if a company matches your Ideal Customer Profile using AI.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+if (!website) {
+  ctx.halt("No website to validate");
+  return false;
+}
+
+// Scrape the website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 1 }
+});
+
+// Use AI to validate against ICP
+const result = await services.ai.generateObject({
+  prompt: `Analyze this website and determine if the company matches our ICP.
+
+Our ICP:
+- B2B SaaS companies
+- 50-500 employees
+- Selling to enterprises
+- Based in North America
+
+Website content:
+${scraped.markdown.substring(0, 10000)}
+
+Determine if they match.`,
+  
+  schema: z.object({
+    matches: z.boolean(),
+    companyType: z.string(),
+    employeeEstimate: z.string().optional(),
+    confidence: z.enum(['high', 'medium', 'low']),
+    reasoning: z.string()
+  }),
+  
+  model: 'gpt-5-mini'
+});
+
+if (!result.object.matches) {
+  ctx.halt(`Not ICP: ${result.object.reasoning}`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "ICP Match": true,
+  "Company Type": result.object.companyType,
+  "ICP Confidence": result.object.confidence
+});
+
+return true;
+```
+
+---
+
+## Validate Job Title
+
+**Use Case**: Check if a person's job title matches your target persona.
+
+```javascript
+const jobTitle = await ctx.thisRow.get("Job Title");
+
+if (!jobTitle) {
+  ctx.halt("No job title");
+  return false;
+}
+
+const result = await services.ai.generateObject({
+  prompt: `Does this job title match our target persona?
+
+Job Title: "${jobTitle}"
+
+Target: C-level executives (CEO, CTO, CFO, CMO, COO), VPs, and Directors.
+
+Return true if they match, false otherwise.`,
+  
+  schema: z.object({
+    matches: z.boolean(),
+    seniority: z.enum(['c-level', 'vp', 'director', 'manager', 'individual-contributor', 'other']),
+    reasoning: z.string()
+  }),
+  
+  model: "gpt-5-mini"
+});
+
+if (!result.object.matches) {
+  ctx.halt(`Job title doesn't match: ${result.object.reasoning}`);
+  return false;
+}
+
+return true;
+```
+
+---
+
+## Validate Email Quality
+
+**Use Case**: Check if an email address is valid and not a generic/role-based email.
+
+```javascript
+const email = await ctx.thisRow.get("Email");
+
+if (!email) {
+  ctx.halt("No email");
+  return false;
+}
+
+// Basic validation
+if (!email.includes('@') || email.length < 5) {
+  ctx.halt("Invalid email format");
+  return false;
+}
+
+// Check for generic/role-based emails
+const genericPrefixes = [
+  'info@', 'contact@', 'sales@', 'support@', 'hello@', 
+  'admin@', 'noreply@', 'no-reply@', 'team@'
+];
+
+const isGeneric = genericPrefixes.some(prefix => 
+  email.toLowerCase().startsWith(prefix)
+);
+
+if (isGeneric) {
+  ctx.halt("Generic email address");
+  return false;
+}
+
+// Check for free email providers (optional - depends on use case)
+const freeProviders = [
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
+  'aol.com', 'icloud.com'
+];
+
+const domain = email.split('@')[1]?.toLowerCase();
+const isFreeEmail = freeProviders.includes(domain);
+
+ctx.thisRow.set({
+  "Email Valid": true,
+  "Email Type": isFreeEmail ? "Personal" : "Work"
+});
+
+return true;
+```
+
+---
+
+## Validate Company Size
+
+**Use Case**: Filter companies by employee count range.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("Company LinkedIn URL");
+
+if (!linkedinUrl) {
+  ctx.halt("No LinkedIn URL");
+  return false;
+}
+
+// Enrich to get employee count
+const companyData = await services.company.linkedin.enrich({
+  url: linkedinUrl
+});
+
+const employeeCount = companyData.size_employees_count;
+
+// Check if within target range (50-500 employees)
+if (employeeCount < 50 || employeeCount > 500) {
+  ctx.halt(`Company size ${employeeCount} is outside target range (50-500)`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Employee Count": employeeCount,
+  "Size Bucket": employeeCount < 100 ? "Small" : employeeCount < 300 ? "Medium" : "Large"
+});
+
+return true;
+```
+
+---
+
+## Validate Website Quality
+
+**Use Case**: Check if a website is valid and not a social media profile.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+
+if (!website) {
+  ctx.halt("No website");
+  return false;
+}
+
+// Check if it's a social media profile (not a real website)
+const socialDomains = [
+  'facebook.com', 'instagram.com', 'linkedin.com', 
+  'twitter.com', 'x.com', 'tiktok.com'
+];
+
+const isSocialProfile = socialDomains.some(domain => 
+  website.toLowerCase().includes(domain)
+);
+
+if (isSocialProfile) {
+  ctx.halt("Website is a social media profile");
+  return false;
+}
+
+// Try to scrape to validate it's accessible
+try {
+  const scraped = await services.scrape.website({
+    url: website,
+    params: { limit: 1 }
+  });
+  
+  if (!scraped.markdown || scraped.markdown.length < 100) {
+    ctx.halt("Website has insufficient content");
+    return false;
+  }
+  
+  return true;
+} catch (error) {
+  ctx.halt("Website is not accessible");
+  return false;
+}
+```
+
+---
+
+## Validate Location
+
+**Use Case**: Filter companies by geographic location.
+
+```javascript
+const state = await ctx.thisRow.get("State");
+
+const targetStates = [
+  'California', 'New York', 'Texas', 'Florida', 
+  'Illinois', 'Massachusetts', 'Washington'
+];
+
+const isInTargetState = targetStates.includes(state);
+
+if (!isInTargetState) {
+  ctx.halt(`State ${state} is not in target list`);
+  return false;
+}
+
+return true;
+```
+
+---
+
+## Validate Data Completeness
+
+**Use Case**: Ensure a lead has all required fields before proceeding.
+
+```javascript
+const requiredFields = {
+  "First Name": await ctx.thisRow.get("First Name"),
+  "Last Name": await ctx.thisRow.get("Last Name"),
+  "Email": await ctx.thisRow.get("Email"),
+  "Company": await ctx.thisRow.get("Company"),
+  "Job Title": await ctx.thisRow.get("Job Title")
+};
+
+const missingFields = Object.entries(requiredFields)
+  .filter(([field, value]) => !value)
+  .map(([field]) => field);
+
+if (missingFields.length > 0) {
+  ctx.halt(`Missing required fields: ${missingFields.join(', ')}`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Data Complete": true,
+  "Validation Status": "Passed"
+});
+
+return true;
+```
+
+---
+
+## Score and Filter Leads
+
+**Use Case**: Score leads based on multiple criteria and filter low scores.
+
+```javascript
+const companySize = await ctx.thisRow.get("Employee Count");
+const industry = await ctx.thisRow.get("Industry");
+const jobTitle = await ctx.thisRow.get("Job Title");
+const hasEmail = await ctx.thisRow.get("Email");
+
+let score = 0;
+
+// Company size scoring
+if (companySize >= 100 && companySize <= 1000) score += 30;
+else if (companySize >= 50) score += 20;
+else if (companySize >= 20) score += 10;
+
+// Industry scoring
+const targetIndustries = ['Software', 'Technology', 'SaaS'];
+if (targetIndustries.some(ind => industry?.includes(ind))) score += 25;
+
+// Job title scoring
+if (jobTitle?.match(/(CEO|CTO|CFO|VP)/i)) score += 30;
+else if (jobTitle?.match(/(Director|Head of)/i)) score += 20;
+else if (jobTitle?.match(/(Manager)/i)) score += 10;
+
+// Contact info scoring
+if (hasEmail) score += 15;
+
+// Filter out low scores
+if (score < 50) {
+  ctx.halt(`Lead score ${score} is below threshold (50)`);
+  return false;
+}
+
+// Determine grade
+let grade;
+if (score >= 80) grade = 'A';
+else if (score >= 65) grade = 'B';
+else grade = 'C';
+
+ctx.thisRow.set({
+  "Lead Score": score,
+  "Lead Grade": grade
+});
+
+return true;
+```
+
+---
+
+## Validate Against Exclusion List
+
+**Use Case**: Check if a company or person is on an exclusion list.
+
+```javascript
+const companyName = await ctx.thisRow.get("Company");
+const email = await ctx.thisRow.get("Email");
+
+// Get exclusion list from another sheet
+const exclusionSheet = await ctx.sheet("Exclusion List");
+const exclusions = await exclusionSheet.getRows();
+
+// Check if company is excluded
+const isCompanyExcluded = exclusions.some(row => 
+  row.get("Company Name")?.toLowerCase() === companyName?.toLowerCase()
+);
+
+if (isCompanyExcluded) {
+  ctx.halt("Company is on exclusion list");
+  return false;
+}
+
+// Check if email domain is excluded
+const emailDomain = email?.split('@')[1]?.toLowerCase();
+const isDomainExcluded = exclusions.some(row => 
+  row.get("Domain")?.toLowerCase() === emailDomain
+);
+
+if (isDomainExcluded) {
+  ctx.halt("Email domain is on exclusion list");
+  return false;
+}
+
+return true;
+```
+
+---
+
+## Validate Hiring Signals
+
+**Use Case**: Check if a company has relevant hiring signals.
+
+```javascript
+const website = await ctx.thisRow.get('Website');
+const domain = website?.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+
+if (!domain) {
+  return false;
+}
+
+// Find careers page
+const careerPage = await services.company.careers.findPage({
+  domain: domain
+});
+
+if (!careerPage?.url) {
+  ctx.halt("No careers page found");
+  return false;
+}
+
+// Scrape job postings
+const jobs = await services.company.careers.scrapeJobs({
+  url: careerPage.url,
+  recent: "month"
+});
+
+// Check for relevant roles
+const relevantRoles = jobs.filter(job => 
+  job.title?.match(/(Sales|Revenue|Business Development|Account Executive)/i)
+);
+
+if (relevantRoles.length === 0) {
+  ctx.halt("No relevant hiring signals");
+  return false;
+}
+
+ctx.thisRow.set({
+  "Hiring Status": "Actively Hiring",
+  "Relevant Roles": relevantRoles.length,
+  "Buying Signal": relevantRoles.length > 3 ? "Strong" : "Moderate"
+});
+
+return true;
+```
+
+---
+
+## Validate Technology Fit
+
+**Use Case**: Check if a company uses compatible or competing technology.
+
+```javascript
+const website = await ctx.thisRow.get('Website');
+
+// Scrape website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 1 }
+});
+
+// Check for technology signals
+const allText = (scraped.markdown + ' ' + scraped.data[0].links.join(' ')).toLowerCase();
+
+// Competing products (exclude)
+const competitors = ['competitor-a.com', 'competitor-b.com'];
+const hasCompetitor = competitors.some(comp => allText.includes(comp));
+
+if (hasCompetitor) {
+  ctx.halt("Already using competitor solution");
+  return false;
+}
+
+// Compatible technologies (good signal)
+const compatibleTech = {
+  'Salesforce': allText.includes('salesforce.com'),
+  'HubSpot': allText.includes('hubspot.com'),
+  'Slack': allText.includes('slack.com')
+};
+
+const foundCompatible = Object.entries(compatibleTech)
+  .filter(([tech, found]) => found)
+  .map(([tech]) => tech);
+
+if (foundCompatible.length === 0) {
+  ctx.halt("No compatible technology stack detected");
+  return false;
+}
+
+ctx.thisRow.set({
+  "Compatible Tech": foundCompatible.join(', '),
+  "Tech Fit": "Good"
+});
+
+return true;
+```
+
+---
+
+## Deduplicate Records
+
+**Use Case**: Check if a record already exists in your sheet.
+
+```javascript
+const email = await ctx.thisRow.get("Email");
+const currentRowId = ctx.thisRow.id;
+
+// Get all rows from current sheet
+const sheet = await ctx.sheet(ctx.thisRow.sheetName);
+const allRows = await sheet.getRows();
+
+// Check for duplicates (excluding current row)
+const duplicate = allRows.find(row => 
+  row.id !== currentRowId && 
+  row.get("Email")?.toLowerCase() === email?.toLowerCase()
+);
+
+if (duplicate) {
+  ctx.halt(`Duplicate email found in row ${duplicate.index + 1}`);
+  return false;
+}
+
+return true;
+```
+
+---
+
+## Validate Contact Info Quality
+
+**Use Case**: Ensure contact information meets quality standards.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("LinkedIn URL");
+const firstName = await ctx.thisRow.get("First Name");
+const lastName = await ctx.thisRow.get("Last Name");
+const company = await ctx.thisRow.get("Company");
+
+// Get contact info
+const contactInfo = await services.person.contact.get({
+  firstName,
+  lastName,
+  company,
+  linkedinUrl,
+  required: ["email"]
+});
+
+// Validate we got work email (best for B2B)
+const hasWorkEmail = contactInfo.work_emails?.length > 0;
+
+if (!hasWorkEmail) {
+  ctx.halt("No work email found");
+  return false;
+}
+
+// Check if we have phone too (bonus)
+const hasPhone = (contactInfo.work_phones?.length || 0) > 0;
+
+ctx.thisRow.set({
+  "Email": contactInfo.work_emails[0],
+  "Phone": hasPhone ? contactInfo.work_phones[0] : "",
+  "Contact Quality": hasPhone ? "High" : "Medium"
+});
+
+return true;
+```
+
+---
+
+## Multi-Criteria Validation
+
+**Use Case**: Validate against multiple criteria before proceeding.
+
+```javascript
+const companyName = await ctx.thisRow.get("Company");
+const website = await ctx.thisRow.get("Website");
+const jobTitle = await ctx.thisRow.get("Job Title");
+const email = await ctx.thisRow.get("Email");
+
+// Validation checks
+const validations = {
+  hasCompany: !!companyName,
+  hasWebsite: !!website && !website.includes('facebook.com') && !website.includes('linkedin.com'),
+  hasSeniorTitle: jobTitle?.match(/(CEO|CTO|CFO|VP|Director)/i),
+  hasValidEmail: email?.includes('@') && !email.startsWith('info@') && !email.startsWith('contact@')
+};
+
+// Count passed validations
+const passedCount = Object.values(validations).filter(Boolean).length;
+const totalChecks = Object.keys(validations).length;
+
+// Require at least 3 out of 4 validations to pass
+if (passedCount < 3) {
+  const failedChecks = Object.entries(validations)
+    .filter(([check, passed]) => !passed)
+    .map(([check]) => check);
+  
+  ctx.halt(`Failed validations: ${failedChecks.join(', ')}`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Validation Score": `${passedCount}/${totalChecks}`,
+  "Validation Status": "Passed"
+});
+
+return true;
+```
+
+---
+
+## Validate Company Growth Signals
+
+**Use Case**: Check for signals that indicate a company is growing.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("Company LinkedIn URL");
+
+if (!linkedinUrl) {
+  return false;
+}
+
+// Get extended company data
+const companyData = await services.company.linkedin.enrich({
+  url: linkedinUrl,
+  enrichLevel: "extended"
+});
+
+// Check growth signals
+const growthSignals = {
+  activeHiring: (companyData.active_job_postings_count || 0) > 5,
+  recentFunding: companyData.funding_rounds?.some(round => {
+    const roundDate = new Date(round.date);
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    return roundDate > oneYearAgo;
+  }),
+  employeeGrowth: (companyData.size_employees_count || 0) > 50
+};
+
+const signalCount = Object.values(growthSignals).filter(Boolean).length;
+
+// Require at least 2 growth signals
+if (signalCount < 2) {
+  ctx.halt(`Only ${signalCount} growth signals detected (need 2+)`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Growth Signals": signalCount,
+  "Active Jobs": companyData.active_job_postings_count,
+  "Priority": signalCount >= 3 ? "High" : "Medium"
+});
+
+return true;
+```
+
+---
+
+## Validate Industry Match
+
+**Use Case**: Check if a company is in your target industries.
+
+```javascript
+const linkedinUrl = await ctx.thisRow.get("Company LinkedIn URL");
+
+if (!linkedinUrl) {
+  ctx.halt("No LinkedIn URL");
+  return false;
+}
+
+const companyData = await services.company.linkedin.enrich({
+  url: linkedinUrl
+});
+
+const industry = companyData.industry || "";
+
+// Target industries
+const targetIndustries = [
+  'Software Development',
+  'Information Technology',
+  'Computer Software',
+  'Internet',
+  'SaaS'
+];
+
+const isTargetIndustry = targetIndustries.some(target => 
+  industry.toLowerCase().includes(target.toLowerCase())
+);
+
+if (!isTargetIndustry) {
+  ctx.halt(`Industry "${industry}" is not in target list`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Industry": industry,
+  "Industry Match": true
+});
+
+return true;
+```
+
+---
+
+## Validate with AI Classification
+
+**Use Case**: Use AI to classify and validate complex criteria.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+const companyName = await ctx.thisRow.get("Company");
+
+// Scrape website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 2 }
+});
+
+// Use AI to classify and validate
+const classification = await services.ai.generateObject({
+  prompt: `Classify this company and determine if they match our criteria.
+
+Company: ${companyName}
+Website content: ${scraped.markdown.substring(0, 10000)}
+
+Our criteria:
+- Must be a B2B company (not B2C)
+- Must sell software or technology services
+- Must have enterprise customers
+- Must NOT be: agencies, consultancies, or service providers
+
+Classify the company and determine if they match.`,
+  
+  schema: z.object({
+    businessModel: z.enum(['b2b', 'b2c', 'b2b2c', 'marketplace', 'other']),
+    companyType: z.string(),
+    hasEnterpriseCustomers: z.boolean(),
+    matchesICP: z.boolean(),
+    confidence: z.number().min(0).max(1),
+    reasoning: z.string()
+  }),
+  
+  model: 'gpt-5-mini'
+});
+
+if (!classification.object.matchesICP) {
+  ctx.halt(`Not ICP: ${classification.object.reasoning}`);
+  return false;
+}
+
+ctx.thisRow.set({
+  "Business Model": classification.object.businessModel,
+  "Company Type": classification.object.companyType,
+  "ICP Confidence": classification.object.confidence
+});
+
+return true;
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use ctx.halt() for Early Exit">
+    When validation fails, use `ctx.halt()` to stop the workflow and provide a clear reason. This saves credits on downstream operations.
+  </Accordion>
+
+  <Accordion title="Validate Early in Workflow">
+    Run validation checks as early as possible in your workflow to avoid wasting resources on bad data.
+  </Accordion>
+
+  <Accordion title="Provide Clear Failure Reasons">
+    Always include a descriptive message in `ctx.halt()` so you understand why records were filtered out.
+  </Accordion>
+
+  <Accordion title="Use AI for Complex Validation">
+    For nuanced criteria, use AI classification rather than rigid rules. It handles edge cases better.
+  </Accordion>
+
+  <Accordion title="Track Validation Metrics">
+    Store validation results and scores so you can analyze your filtering effectiveness.
+  </Accordion>
+
+  <Accordion title="Combine Multiple Checks">
+    Use multiple validation criteria together for more accurate filtering.
+  </Accordion>
+
+  <Accordion title="Handle Missing Data Gracefully">
+    Check for null/undefined values before validating to avoid errors.
+  </Accordion>
+</AccordionGroup>
+

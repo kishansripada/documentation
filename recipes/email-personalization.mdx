@@ -1,0 +1,362 @@
+---
+title: 'Email Personalization Recipes'
+description: 'Generate personalized email content and variables'
+---
+
+# Email Personalization
+
+Common patterns for generating personalized email content using AI and company research.
+
+## Generate Email Personalization from Research
+
+**Use Case**: Research a company and generate personalized email hooks.
+
+```javascript
+const website = await ctx.thisRow.get("Website");
+const companyName = await ctx.thisRow.get("Company Name");
+
+// Research the company
+const research = await services.ai.generateText({
+  prompt: `Research ${companyName} at ${website}
+
+Find concrete signals about:
+- Recent news or developments
+- Technology stack or systems they use
+- Growth signals (hiring, expansion, funding)
+- Operational challenges or pain points
+
+Keep findings concise and cite sources.`,
+  
+  model: "gpt-5-mini",
+  enableWebSearch: true
+});
+
+// Generate personalized email variable
+const personalization = await services.ai.generateObject({
+  prompt: `Based on this research, generate a personalized email opening line.
+
+Research:
+${research.text}
+
+Email template:
+"Hi {{Name}}, I noticed that {{PERSONALIZATION}}. Would love to chat about how we can help."
+
+Generate the personalization that fills in {{PERSONALIZATION}}. Make it:
+- Specific and relevant
+- Natural and conversational
+- Related to their business
+- 1-2 sentences max`,
+  
+  schema: z.object({
+    personalization: z.string(),
+    confidence: z.number().min(0).max(1)
+  }),
+  
+  model: "gpt-5-mini"
+});
+
+ctx.thisRow.set({
+  "Research": research.text,
+  "Email Personalization": personalization.object.personalization,
+  "Confidence": personalization.object.confidence
+});
+
+return personalization.object.personalization;
+```
+
+---
+
+## Generate Personalization from Website
+
+**Use Case**: Scrape a company's website and generate personalized email content.
+
+```javascript
+const website = await ctx.thisRow.get('Website');
+const companyName = await ctx.thisRow.get('Company Name');
+
+// Scrape the website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 3 } // Scrape a few pages
+});
+
+// Generate personalized email hooks
+const result = await services.ai.generateObject({
+  prompt: `Based on this website content for ${companyName}, generate personalized email hooks.
+
+Website content:
+${scraped.markdown.substring(0, 15000)}
+
+Generate 3 personalization options:
+1. email1_hook - Opening line mentioning something specific about their business
+2. email2_hook - Follow-up line referencing their products/services
+3. value_prop - One-liner about how our solution helps them specifically
+
+Make each natural, conversational, and specific to THIS company.`,
+  
+  schema: z.object({
+    email1_hook: z.string(),
+    email2_hook: z.string(),
+    value_prop: z.string()
+  }),
+  
+  model: "claude-sonnet-4-5-20250929"
+});
+
+ctx.thisRow.set({
+  "Email Hook 1": result.object.email1_hook,
+  "Email Hook 2": result.object.email2_hook,
+  "Value Prop": result.object.value_prop
+});
+
+return result.object;
+```
+
+---
+
+## Personalize Based on Technology Stack
+
+**Use Case**: Detect what technologies a company uses and personalize outreach accordingly.
+
+```javascript
+const website = await ctx.thisRow.get('Website');
+const companyName = await ctx.thisRow.get('Company Name');
+
+// Scrape website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 1 }
+});
+
+// Detect technologies
+const allText = (scraped.markdown + ' ' + scraped.data[0].links.join(' ')).toLowerCase();
+
+const technologies = {
+  'Salesforce': allText.includes('salesforce.com'),
+  'HubSpot': allText.includes('hubspot.com'),
+  'Shopify': allText.includes('shopify.com'),
+  'Stripe': allText.includes('stripe.com')
+};
+
+const foundTech = Object.entries(technologies)
+  .filter(([tech, found]) => found)
+  .map(([tech]) => tech);
+
+// Generate personalized message based on their stack
+const personalization = await services.ai.generateText({
+  prompt: `Generate a personalized email opening for ${companyName}.
+
+They currently use: ${foundTech.join(', ')}
+
+Our product integrates with their existing stack. Write a natural opening line that:
+- Mentions their current tools
+- Explains how we complement their stack
+- Keeps it conversational (1-2 sentences)`,
+  
+  model: "gpt-5-mini"
+});
+
+return personalization.text;
+```
+
+---
+
+## Generate Multi-Touch Email Sequence
+
+**Use Case**: Generate personalized content for an entire email sequence.
+
+```javascript
+const companyName = await ctx.thisRow.get('Company Name');
+const website = await ctx.thisRow.get('Website');
+const firstName = await ctx.thisRow.get('First Name');
+
+// Scrape and research
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 2 }
+});
+
+// Generate sequence
+const sequence = await services.ai.generateObject({
+  prompt: `Generate a 3-email sequence for ${firstName} at ${companyName}.
+
+Website content:
+${scraped.markdown.substring(0, 10000)}
+
+Generate:
+1. email1 - Initial outreach (2-3 sentences, mention something specific about their company)
+2. email2 - Follow-up (reference email 1, add value)
+3. email3 - Final touch (different angle, create urgency)
+
+Keep each email short, conversational, and personalized.`,
+  
+  schema: z.object({
+    email1: z.string(),
+    email2: z.string(),
+    email3: z.string()
+  }),
+  
+  model: "claude-sonnet-4-5-20250929"
+});
+
+ctx.thisRow.set({
+  "Email 1": sequence.object.email1,
+  "Email 2": sequence.object.email2,
+  "Email 3": sequence.object.email3
+});
+
+return sequence.object;
+```
+
+---
+
+## Personalize Based on Job Postings
+
+**Use Case**: Use a company's job postings to personalize outreach.
+
+```javascript
+const website = await ctx.thisRow.get('Website');
+const domain = website?.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+
+// Find and scrape careers page
+const careerPage = await services.company.careers.findPage({ domain });
+
+if (!careerPage?.url) {
+  return "I noticed you're growing your team";
+}
+
+const jobs = await services.company.careers.scrapeJobs({
+  url: careerPage.url,
+  recent: "month"
+});
+
+// Generate personalization based on hiring
+const personalization = await services.ai.generateText({
+  prompt: `Generate a natural email opening line.
+
+The company is hiring for these roles:
+${jobs.slice(0, 5).map(j => j.title).join('\n')}
+
+Write a conversational line that:
+- Mentions their hiring/growth
+- Connects to our sales enablement solution
+- Feels natural and not creepy
+- 1 sentence only`,
+  
+  model: "gpt-5-mini"
+});
+
+return personalization.text;
+```
+
+---
+
+## Clean Company Names for Emails
+
+**Use Case**: Convert formal company names to friendly, email-appropriate versions.
+
+```javascript
+const companyName = await ctx.thisRow.get('Company Name');
+
+if (!companyName) {
+  return '';
+}
+
+const result = await services.ai.generateObject({
+  prompt: `Transform this company name into an email-friendly version.
+
+Company name: "${companyName}"
+
+Rules:
+- Remove legal suffixes (Inc, LLC, Ltd, Corp, etc.)
+- Remove generic terms (Group, Associates, Services, etc.)
+- Keep it conversational
+- Preserve brand identity
+
+Examples:
+- "Acme Corporation LLC" → "Acme"
+- "Smith & Associates, Inc." → "Smith & Associates"
+- "TechCo Services Group" → "TechCo"`,
+  
+  schema: z.object({
+    friendlyName: z.string(),
+    confidence: z.number().min(0).max(1)
+  }),
+  
+  model: 'gpt-5-mini'
+});
+
+return result.object.friendlyName;
+```
+
+---
+
+## Generate Value Proposition
+
+**Use Case**: Create a tailored value proposition based on company analysis.
+
+```javascript
+const companyName = await ctx.thisRow.get('Company Name');
+const website = await ctx.thisRow.get('Website');
+const industry = await ctx.thisRow.get('Industry');
+const employeeCount = await ctx.thisRow.get('Employee Count');
+
+// Scrape website
+const scraped = await services.scrape.website({
+  url: website,
+  params: { limit: 1 }
+});
+
+// Generate tailored value prop
+const result = await services.ai.generateText({
+  prompt: `Generate a one-sentence value proposition for ${companyName}.
+
+Context:
+- Industry: ${industry}
+- Size: ${employeeCount} employees
+- Website: ${scraped.markdown.substring(0, 5000)}
+
+Our product: AI-powered sales intelligence platform
+
+Write a value prop that:
+- Addresses their specific needs based on industry/size
+- Mentions concrete benefits
+- Feels tailored to them
+- One sentence only`,
+  
+  model: "gpt-5-mini"
+});
+
+return result.text;
+```
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Research Before Personalizing">
+    Always gather data (scrape website, research company) before generating personalization.
+  </Accordion>
+
+  <Accordion title="Keep It Natural">
+    Tell AI to be conversational and avoid sounding robotic or overly formal.
+  </Accordion>
+
+  <Accordion title="Use Specific Prompts">
+    The more specific your prompt about tone, length, and content, the better the output.
+  </Accordion>
+
+  <Accordion title="Generate Multiple Options">
+    Generate 2-3 personalization options and pick the best one, or use them for A/B testing.
+  </Accordion>
+
+  <Accordion title="Avoid Being Creepy">
+    Don't mention overly specific details. Keep personalization at a high level.
+  </Accordion>
+
+  <Accordion title="Test Different Models">
+    Claude Sonnet is great for creative writing, GPT-5-mini is fast and cost-effective.
+  </Accordion>
+</AccordionGroup>
+
