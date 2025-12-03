@@ -61,16 +61,6 @@ const linkedin = await services.person.linkedin.findUrl({
    company,
 });
 
-// Enrich the profile and store data
-if (linkedin) {
-   const profile = await services.person.linkedin.enrich({ url: linkedin });
-   ctx.thisRow.set({
-      "LinkedIn URL": linkedin,
-      Title: profile.job_title,
-      Location: profile.location_city,
-   });
-}
-
 return linkedin;
 ```
 

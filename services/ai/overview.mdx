@@ -114,11 +114,7 @@ const result = await services.ai.generateObject({
    }),
 });
 
-ctx.thisRow.set({
-   Name: result.object.name,
-   Email: result.object.email,
-   Company: result.object.company,
-});
+return result.object;
 ```
 
 ### Generate Personalized Outreach
@@ -151,8 +147,5 @@ const result = await services.ai.generateResearch({
    products, market position, and potential pain points for sales outreach`,
 });
 
-ctx.thisRow.set({
-   "Account Intelligence": result.content,
-   "Research Cost": result.cost,
-});
+return result.content;
 ```

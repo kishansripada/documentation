@@ -36,7 +36,7 @@ const companyUrl = await services.company.linkedin.findUrl({
    website,
 });
 
-ctx.thisRow.set({ "Company LinkedIn": companyUrl });
+return companyUrl;
 ```
 
 ### Enriching Prospect Company Data
@@ -44,29 +44,11 @@ ctx.thisRow.set({ "Company LinkedIn": companyUrl });
 ```typescript
 const companyUrl = ctx.thisRow.get("Company LinkedIn");
 
-// Basic enrichment for quick qualification
-const basicData = await services.company.linkedin.enrich({
+const data = await services.company.linkedin.enrich({
    url: companyUrl,
 });
 
-ctx.thisRow.set({
-   "Employee Count": basicData.size_employees_count,
-   Industry: basicData.industry,
-   "HQ Location": basicData.location_hq_country,
-   Founded: basicData.founded,
-});
-
-// Extended enrichment for high-value accounts
-const extendedData = await services.company.linkedin.enrich({
-   url: companyUrl,
-   enrichLevel: "extended",
-});
-
-ctx.thisRow.set({
-   "Active Jobs": extendedData.active_job_postings_count,
-   "Employee Review Score": extendedData.company_employee_reviews_aggregate_score,
-   "Growth Signal": extendedData.active_job_postings_count > 10 ? "High Growth" : "Stable",
-});
+return data.size_employees_count;
 ```
 
 ### Finding Decision Makers at Target Company
@@ -84,14 +66,7 @@ const employees = await services.company.getEmployees({
 // Filter for decision makers (C-level, VPs, Directors)
 const decisionMakers = employees.filter((emp) => emp.title?.match(/(CEO|CTO|CFO|VP|Vice President|Director|Head of)/i));
 
-ctx.thisRow.set({
-   "Total Employees": employees.length,
-   "Decision Makers": decisionMakers.length,
-   "Key Contacts": decisionMakers
-      .slice(0, 5)
-      .map((dm) => `${dm.name} (${dm.title})`)
-      .join("; "),
-});
+return decisionMakers.slice(0, 5).map((dm) => `${dm.name} (${dm.title})`).join("; ");
 ```
 
 ### Identify Growth Signals from Job Postings
@@ -116,16 +91,7 @@ if (careerPage?.url) {
       recent: "month",
    });
 
-   // Analyze for buying signals
-   const salesRoles = jobs.filter((job) => job.title?.match(/(Sales|Revenue|Business Development)/i));
-   const techRoles = jobs.filter((job) => job.title?.match(/(Engineer|Developer|Technical)/i));
-
-   ctx.thisRow.set({
-      "Total Open Roles": jobs.length,
-      "Sales Hiring": salesRoles.length,
-      "Tech Hiring": techRoles.length,
-      "Growth Signal": jobs.length > 5 ? "Expanding" : "Stable",
-   });
+   return jobs.length > 5 ? "Expanding" : "Stable";
 }
 ```
 

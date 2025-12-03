@@ -55,12 +55,6 @@ Generate the personalization that fills in {{PERSONALIZATION}}. Make it:
   model: "gpt-5-mini"
 });
 
-ctx.thisRow.set({
-  "Research": research.text,
-  "Email Personalization": personalization.object.personalization,
-  "Confidence": personalization.object.confidence
-});
-
 return personalization.object.personalization;
 ```
 
@@ -101,12 +95,6 @@ Make each natural, conversational, and specific to THIS company.`,
   }),
   
   model: "claude-sonnet-4-5-20250929"
-});
-
-ctx.thisRow.set({
-  "Email Hook 1": result.object.email1_hook,
-  "Email Hook 2": result.object.email2_hook,
-  "Value Prop": result.object.value_prop
 });
 
 return result.object;
@@ -197,12 +185,6 @@ Keep each email short, conversational, and personalized.`,
   }),
   
   model: "claude-sonnet-4-5-20250929"
-});
-
-ctx.thisRow.set({
-  "Email 1": sequence.object.email1,
-  "Email 2": sequence.object.email2,
-  "Email 3": sequence.object.email3
 });
 
 return sequence.object;

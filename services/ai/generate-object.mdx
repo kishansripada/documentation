@@ -64,13 +64,7 @@ const result = await services.ai.generateObject({
    }),
 });
 
-ctx.thisRow.set({
-   Name: result.object.name,
-   Email: result.object.email,
-   Phone: result.object.phone,
-   Company: result.object.company,
-   Title: result.object.title,
-});
+return result.object;
 ```
 
 ### Extract Company's Product Offerings
@@ -91,11 +85,7 @@ const result = await services.ai.generateObject({
    }),
 });
 
-ctx.thisRow.set({
-   Products: result.object.primary_products.join(", "),
-   "Target Market": result.object.target_market,
-   "Pricing Model": result.object.pricing_model,
-});
+return result.object.primary_products.join(", ");
 ```
 
 ### Extract Company Intelligence from About Page
@@ -121,53 +111,8 @@ const result = await services.ai.generateObject({
       headquarters: z.string().optional(),
       employee_count_estimate: z.string().optional(),
       description: z.string(),
-      key_executives: z
-         .array(
-            z.object({
-               name: z.string(),
-               title: z.string(),
-            })
-         )
-         .optional(),
-      mission_statement: z.string().optional(),
    }),
 });
 
-ctx.thisRow.set({
-   "Company Name": result.object.company_name,
-   Founded: result.object.founded_year,
-   "HQ Location": result.object.headquarters,
-   "Company Description": result.object.description,
-});
-```
-
-### Identify Decision Makers from Team Page
-
-```typescript
-// Extract decision makers from a prospect's team/about page
-const website = ctx.thisRow.get("Website");
-const scraped = await services.scrape.website({
-   url: `${website}/team`,
-});
-
-const result = await services.ai.generateObject({
-   prompt: `Extract all executives and decision makers from this team page. 
-   Focus on C-level, VPs, and Directors: ${scraped.markdown}`,
-   schema: z.object({
-      total_decision_makers: z.number(),
-      decision_makers: z.array(
-         z.object({
-            name: z.string(),
-            title: z.string(),
-            department: z.string().optional(),
-            linkedin_url: z.string().optional(),
-         })
-      ),
-   }),
-});
-
-ctx.thisRow.set({
-   "Decision Maker Count": result.object.total_decision_makers,
-   "Key Contacts": result.object.decision_makers.map((dm) => `${dm.name} (${dm.title})`).join("; "),
-});
+return result.object;
 ```

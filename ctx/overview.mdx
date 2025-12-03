@@ -12,21 +12,15 @@ The Context object (`ctx`) provides a powerful API for programmatically interact
 
 <CardGroup cols={2}>
    <Card title="This Row" icon="table-rows" href="/ctx/this-row">
-      Get and set values on the current row
-   </Card>
-   <Card title="This Cell" icon="table-cells" href="/ctx/this-cell">
-      Access and modify the currently executing cell
+      Get values from the current row
    </Card>
    <Card title="Sheets" icon="table" href="/ctx/sheets">
       Add rows and query data across sheets
    </Card>
-   <Card title="Cells & Rows" icon="grip" href="/ctx/cells">
-      Direct access to any cell or row by ID or value
-   </Card>
    <Card title="Utilities" icon="wrench" href="/ctx/utilities">
       Helper functions for common data transformations
    </Card>
-   <Card title="Workflow Control" icon="traffic-light" href="/ctx/workflow">
+   <Card title="Workflows" icon="traffic-light" href="/ctx/workflow">
       Orchestrate execution with sleep and halt
    </Card>
    <Card title="Webhooks" icon="webhook" href="/webhooks/overview">
@@ -42,12 +36,6 @@ The `ctx` object is automatically available in all column formulas:
 // Get a value from the current row
 const email = ctx.thisRow.get("email");
 
-// Set multiple values on the current row
-ctx.thisRow.set({
-   status: "processed",
-   lastUpdated: new Date().toISOString(),
-});
-
 // Add a row to another sheet
 const newRow = await ctx.sheet("Contacts").addRow({
    name: ctx.thisRow.get("name"),
@@ -61,12 +49,11 @@ const company = await ctx.getRowByValue("Companies", "Acme Corp");
 
 ## Key Features
 
--  **Row Operations**: Read and write data on the current row or any row in the sheet
+-  **Row Operations**: Read data from the current row or any row in the sheet
 -  **Cross-Sheet Access**: Push data between sheets and query related records
 -  **Foreign Key Navigation**: Use dot notation to traverse relationships (e.g., `Companies.Owner.name`)
 -  **Workflow Control**: Optimize execution with `halt()` for early termination signals
 -  **Type Safety**: Column names and sheet names are validated at runtime
--  **Metadata Management**: Store custom metadata on cells for advanced use cases
 
 ## Context Properties
 
@@ -75,8 +62,6 @@ The `ctx` object includes several key properties:
 -  `ctx.rowId` - UUID of the current row
 -  `ctx.colId` - UUID of the current column
 -  `ctx.thisRow` - Helpers for the current row
--  `ctx.thisCell` - Helpers for the current cell (unavailable in webhooks)
--  `ctx.thisColumn` - Helpers for the current column
 -  `ctx.thisSheet` - Helpers scoped to the current sheet
 -  `ctx.utils` - Utility functions for data transformation
 
@@ -103,14 +88,7 @@ const linkedinUrl = await services.person.linkedin.findUrl({
 
 if (linkedinUrl) {
    const profile = await services.person.linkedin.enrich({ url: linkedinUrl });
-
-   ctx.thisRow.set({
-      "LinkedIn URL": linkedinUrl,
-      Title: profile.job_title,
-      Location: profile.location_city,
-      "Account ID": account.id,
-      Status: "Enriched",
-   });
+   return profile.job_title;
 }
 ```
 
@@ -136,48 +114,9 @@ const analysis = await services.ai.generateObject({
 
 // Signal early termination if not a good fit
 if (!analysis.object.isICP) {
-   ctx.thisRow.set({
-      Status: "Disqualified",
-      "Disqualification Reason": analysis.object.reason,
-   });
    ctx.halt("Not in ICP");
-   return;
+   return false;
 }
 
-// Continue with expensive enrichment for qualified leads
-ctx.thisRow.set({ Status: "Qualified - Enriching" });
-```
-
-### Calculate Account Health Score
-
-```typescript
-// Get all contacts and activities related to this account
-const contacts = ctx.thisRow.getRelatedRows("Contacts");
-const activities = ctx.thisRow.getRelatedRows("Activities");
-
-// Calculate account metrics
-const decisionMakers = contacts.filter((c) => c.get("Title")?.match(/(CEO|CTO|CFO|VP|Director)/i)).length;
-
-const recentActivities = activities.filter((a) => {
-   const date = new Date(a.get("Date"));
-   const daysAgo = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
-   return daysAgo <= 30;
-}).length;
-
-const emailsSent = activities.filter((a) => a.get("Type") === "Email").length;
-const meetingsHeld = activities.filter((a) => a.get("Type") === "Meeting").length;
-
-// Calculate health score
-let healthScore = 0;
-healthScore += Math.min(decisionMakers * 10, 30); // Up to 30 points for contacts
-healthScore += Math.min(recentActivities * 5, 40); // Up to 40 points for activity
-healthScore += Math.min(meetingsHeld * 10, 30); // Up to 30 points for meetings
-
-ctx.thisRow.set({
-   "Total Contacts": contacts.length,
-   "Decision Makers": decisionMakers,
-   "Recent Activities": recentActivities,
-   "Account Health Score": healthScore,
-   "Account Status": healthScore >= 70 ? "Hot" : healthScore >= 40 ? "Warm" : "Cold",
-});
+return true;
 ```

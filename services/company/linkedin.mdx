@@ -44,7 +44,7 @@ const companyUrl = await services.company.linkedin.findUrl({
    website,
 });
 
-ctx.thisRow.set({ "Company LinkedIn URL": companyUrl });
+return companyUrl;
 ```
 
 ---
@@ -187,28 +187,7 @@ const company = await services.company.linkedin.enrich({
    url: companyUrl,
 });
 
-// Store key qualification data
-ctx.thisRow.set({
-   "Company Name": company.name,
-   Industry: company.industry,
-   "Employee Count": company.size_employees_count,
-   "HQ Location": company.location_hq_country,
-   "Founded Year": company.founded,
-   "Company Description": company.description,
-   Website: company.websites_main,
-});
-
-// Qualify based on company size
-let qualification = "Not Qualified";
-if (company.size_employees_count >= 500) {
-   qualification = "Enterprise";
-} else if (company.size_employees_count >= 50) {
-   qualification = "Mid-Market";
-} else if (company.size_employees_count >= 10) {
-   qualification = "SMB";
-}
-
-ctx.thisRow.set({ "Company Segment": qualification });
+return company.size_employees_count;
 ```
 
 ## Extended Enrichment
@@ -312,40 +291,7 @@ const company = await services.company.linkedin.enrich({
    enrichLevel: "extended",
 });
 
-// Store financial and growth indicators
-ctx.thisRow.set({
-   "Annual Revenue": company.revenue_annual?.["2024"]?.annual_revenue,
-   "Stock Ticker": company.stock_ticker?.[0]?.ticker,
-   "Active Job Postings": company.active_job_postings_count,
-   "Employee Review Score": company.company_employee_reviews_aggregate_score,
-   "Monthly Website Visits": company.total_website_visits_monthly,
-});
-
-// Analyze department breakdown for targeting
-const deptBreakdown = company.employees_count_breakdown_by_department;
-ctx.thisRow.set({
-   "Engineering Team Size": deptBreakdown?.Engineering,
-   "Sales Team Size": deptBreakdown?.Sales,
-   "Marketing Team Size": deptBreakdown?.Marketing,
-});
-
-// Extract key executives for multi-threading
-const executives = company.key_executives
-   ?.slice(0, 5)
-   .map((exec) => `${exec.member_full_name} (${exec.member_position_title})`)
-   .join("; ");
-ctx.thisRow.set({ "Key Executives": executives });
-
-// Identify buying signals
-const buyingSignals = [];
-if (company.active_job_postings_count > 10) buyingSignals.push("High Growth");
-if (company.total_website_visits_monthly > 100000) buyingSignals.push("High Traffic");
-if (company.company_employee_reviews_aggregate_score > 4.0) buyingSignals.push("Good Culture");
-
-ctx.thisRow.set({
-   "Buying Signals": buyingSignals.join(", "),
-   Priority: buyingSignals.length >= 2 ? "High" : "Medium",
-});
+return company.active_job_postings_count;
 ```
 
 ## Use Cases
@@ -357,49 +303,23 @@ ctx.thisRow.set({
 const companyName = ctx.thisRow.get("Company");
 const website = ctx.thisRow.get("Website");
 
-// Step 1: Find the company
+// Find the company
 const url = await services.company.linkedin.findUrl({
    name: companyName,
    website,
 });
 
 if (!url) {
-   ctx.thisRow.set({ Status: "Company Not Found" });
-   return;
+   return "Company Not Found";
 }
 
-// Step 2: Get extended data for deep account intelligence
+// Get extended data for deep account intelligence
 const data = await services.company.linkedin.enrich({
    url,
    enrichLevel: "extended",
 });
 
-// Step 3: Store comprehensive account data
-ctx.thisRow.set({
-   "Company LinkedIn": url,
-   "Company Name": data.name,
-   Industry: data.industry,
-   "Employee Count": data.size_employees_count,
-   Founded: data.founded,
-   "HQ Location": data.location_hq_country,
-   "Annual Revenue": data.revenue_annual?.["2024"]?.annual_revenue,
-   "Last Funding": data.last_funding_round_amount_raised,
-   "Employee Review Score": data.company_employee_reviews_aggregate_score,
-   "Active Job Postings": data.active_job_postings_count,
-   "Website Traffic": data.total_website_visits_monthly,
-});
-
-// Step 4: Calculate account priority score
-let priorityScore = 0;
-if (data.size_employees_count > 500) priorityScore += 3;
-if (data.active_job_postings_count > 10) priorityScore += 2;
-if (data.total_website_visits_monthly > 100000) priorityScore += 2;
-if (data.company_employee_reviews_aggregate_score > 4.0) priorityScore += 1;
-
-ctx.thisRow.set({
-   "Account Priority": priorityScore >= 5 ? "High" : priorityScore >= 3 ? "Medium" : "Low",
-   Status: "Fully Enriched",
-});
+return data.size_employees_count;
 ```
 
 ### Competitive Analysis

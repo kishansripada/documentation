@@ -35,7 +35,7 @@ const url = await services.person.linkedin.findUrl({
    title,
 });
 
-ctx.thisRow.set({ "LinkedIn URL": url });
+return url;
 ```
 
 ### Enriching Prospect Data
@@ -47,14 +47,7 @@ const profile = await services.person.linkedin.enrich({
    url: linkedinUrl,
 });
 
-// Store enriched data for sales outreach
-ctx.thisRow.set({
-   "Full Name": profile.full_name,
-   Headline: profile.headline,
-   "Current Title": profile.job_title,
-   Location: profile.location_city,
-   "Years of Experience": Math.floor((profile.total_experience_duration_months || 0) / 12),
-});
+return profile.job_title;
 ```
 
 ### Getting Prospect Contact Information
@@ -67,22 +60,11 @@ const contact = await services.person.contact.get({
    required: ["email"],
 });
 
-// Store work email (best for B2B outreach)
+// Return work email (best for B2B outreach)
 if (contact.work_emails && contact.work_emails.length > 0) {
-   ctx.thisRow.set({
-      Email: contact.work_emails[0],
-      "Email Type": "Work",
-   });
+   return contact.work_emails[0];
 } else if (contact.personal_emails && contact.personal_emails.length > 0) {
-   ctx.thisRow.set({
-      Email: contact.personal_emails[0],
-      "Email Type": "Personal",
-   });
-}
-
-// Store phone if available
-if (contact.phone_numbers && contact.phone_numbers.length > 0) {
-   ctx.thisRow.set({ Phone: contact.phone_numbers[0] });
+   return contact.personal_emails[0];
 }
 ```
 

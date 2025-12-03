@@ -161,12 +161,6 @@ if (!result.object.matches) {
   return false;
 }
 
-ctx.thisRow.set({
-  "Company Type": result.object.companyType,
-  "Employee Estimate": result.object.employeeEstimate,
-  "ICP Confidence": result.object.confidence
-});
-
 return true;
 ```
 
@@ -222,13 +216,6 @@ Return relevant roles and whether this is a strong buying signal.`,
   }),
   
   model: 'gpt-5-mini'
-});
-
-ctx.thisRow.set({
-  "Total Open Roles": jobs.length,
-  "Relevant Roles": analysis.object.relevantRoles.join(', '),
-  "Buying Signal": analysis.object.buyingSignalStrength,
-  "Hiring Status": analysis.object.hasRelevantRoles ? "Actively Hiring" : "Stable"
 });
 
 return analysis.object;
@@ -315,11 +302,6 @@ for (const dm of decisionMakers.slice(0, 10)) {
   }
 }
 
-ctx.thisRow.set({
-  "Contacts Created": Math.min(decisionMakers.length, 10),
-  "Status": "Contacts Extracted"
-});
-
 return decisionMakers.length;
 ```
 
@@ -346,16 +328,7 @@ const companyData = await services.company.linkedin.enrich({
   url: companyLinkedinUrl
 });
 
-// Store company data on the contact record
-ctx.thisRow.set({
-  "Company LinkedIn": companyLinkedinUrl,
-  "Company Size": companyData.size_employees_count,
-  "Company Industry": companyData.industry,
-  "Company Location": companyData.location_hq_country,
-  "Company Founded": companyData.founded
-});
-
-return companyData;
+return companyData.size_employees_count;
 ```
 
 ---
@@ -400,11 +373,6 @@ if (score >= 80) grade = 'A';
 else if (score >= 60) grade = 'B';
 else if (score >= 40) grade = 'C';
 else grade = 'D';
-
-ctx.thisRow.set({
-  "Lead Score": score,
-  "Lead Grade": grade
-});
 
 return { score, grade };
 ```

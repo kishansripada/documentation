@@ -146,8 +146,7 @@ const personData = {
 // Push to Contacts sheet
 const contact = await ctx.sheet("Contacts").addRow(personData);
 
-// Store the reference
-ctx.thisRow.set({ contact_id: contact.id });
+return contact.id;
 ```
 
 ### Process Array Data Across Sheets
@@ -169,8 +168,7 @@ for (const job of jobs.jobs) {
    });
 }
 
-// Update summary on current row
-ctx.thisRow.set({ total_jobs: jobs.jobs.length });
+return jobs.jobs.length;
 ```
 
 ### Deduplicate and Merge Data
@@ -208,15 +206,12 @@ const jobs = await ctx.thisSheet.getRowsByValue("company_id", ctx.rowId);
 const employees = await ctx.sheet("Employees").getRowsByValue("company_id", ctx.rowId);
 
 // Calculate aggregates
-const metrics = {
+return {
    total_jobs: jobs.length,
    open_jobs: jobs.filter((j) => j.get("status") === "open").length,
    total_employees: employees.length,
    engineering_employees: employees.filter((e) => e.get("department") === "Engineering").length,
 };
-
-// Update current row
-ctx.thisRow.set(metrics);
 ```
 
 ### Batch Operations

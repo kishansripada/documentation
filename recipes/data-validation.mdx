@@ -56,12 +56,6 @@ if (!result.object.matches) {
   return false;
 }
 
-ctx.thisRow.set({
-  "ICP Match": true,
-  "Company Type": result.object.companyType,
-  "ICP Confidence": result.object.confidence
-});
-
 return true;
 ```
 
@@ -149,11 +143,6 @@ const freeProviders = [
 const domain = email.split('@')[1]?.toLowerCase();
 const isFreeEmail = freeProviders.includes(domain);
 
-ctx.thisRow.set({
-  "Email Valid": true,
-  "Email Type": isFreeEmail ? "Personal" : "Work"
-});
-
 return true;
 ```
 
@@ -183,11 +172,6 @@ if (employeeCount < 50 || employeeCount > 500) {
   ctx.halt(`Company size ${employeeCount} is outside target range (50-500)`);
   return false;
 }
-
-ctx.thisRow.set({
-  "Employee Count": employeeCount,
-  "Size Bucket": employeeCount < 100 ? "Small" : employeeCount < 300 ? "Medium" : "Large"
-});
 
 return true;
 ```
@@ -288,11 +272,6 @@ if (missingFields.length > 0) {
   return false;
 }
 
-ctx.thisRow.set({
-  "Data Complete": true,
-  "Validation Status": "Passed"
-});
-
 return true;
 ```
 
@@ -338,11 +317,6 @@ let grade;
 if (score >= 80) grade = 'A';
 else if (score >= 65) grade = 'B';
 else grade = 'C';
-
-ctx.thisRow.set({
-  "Lead Score": score,
-  "Lead Grade": grade
-});
 
 return true;
 ```
@@ -425,12 +399,6 @@ if (relevantRoles.length === 0) {
   return false;
 }
 
-ctx.thisRow.set({
-  "Hiring Status": "Actively Hiring",
-  "Relevant Roles": relevantRoles.length,
-  "Buying Signal": relevantRoles.length > 3 ? "Strong" : "Moderate"
-});
-
 return true;
 ```
 
@@ -476,11 +444,6 @@ if (foundCompatible.length === 0) {
   ctx.halt("No compatible technology stack detected");
   return false;
 }
-
-ctx.thisRow.set({
-  "Compatible Tech": foundCompatible.join(', '),
-  "Tech Fit": "Good"
-});
 
 return true;
 ```
@@ -545,13 +508,7 @@ if (!hasWorkEmail) {
 // Check if we have phone too (bonus)
 const hasPhone = (contactInfo.work_phones?.length || 0) > 0;
 
-ctx.thisRow.set({
-  "Email": contactInfo.work_emails[0],
-  "Phone": hasPhone ? contactInfo.work_phones[0] : "",
-  "Contact Quality": hasPhone ? "High" : "Medium"
-});
-
-return true;
+return contactInfo.work_emails[0];
 ```
 
 ---
@@ -587,11 +544,6 @@ if (passedCount < 3) {
   ctx.halt(`Failed validations: ${failedChecks.join(', ')}`);
   return false;
 }
-
-ctx.thisRow.set({
-  "Validation Score": `${passedCount}/${totalChecks}`,
-  "Validation Status": "Passed"
-});
 
 return true;
 ```
@@ -635,12 +587,6 @@ if (signalCount < 2) {
   return false;
 }
 
-ctx.thisRow.set({
-  "Growth Signals": signalCount,
-  "Active Jobs": companyData.active_job_postings_count,
-  "Priority": signalCount >= 3 ? "High" : "Medium"
-});
-
 return true;
 ```
 
@@ -681,11 +627,6 @@ if (!isTargetIndustry) {
   ctx.halt(`Industry "${industry}" is not in target list`);
   return false;
 }
-
-ctx.thisRow.set({
-  "Industry": industry,
-  "Industry Match": true
-});
 
 return true;
 ```
@@ -737,12 +678,6 @@ if (!classification.object.matchesICP) {
   ctx.halt(`Not ICP: ${classification.object.reasoning}`);
   return false;
 }
-
-ctx.thisRow.set({
-  "Business Model": classification.object.businessModel,
-  "Company Type": classification.object.companyType,
-  "ICP Confidence": classification.object.confidence
-});
 
 return true;
 ```

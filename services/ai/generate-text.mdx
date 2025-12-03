@@ -135,22 +135,18 @@ return result.text;
 ### Research Prospect Company News
 
 ```typescript
-async function researchCompanyNews(companyName: string) {
-   const result = await services.ai.generateText({
-      prompt: `Find recent news about ${companyName} including funding, acquisitions, 
-    product launches, or leadership changes. Summarize the top 3 most relevant items 
-    for a sales conversation.`,
-      model: "claude-sonnet-4-5-20250929",
-      enableWebSearch: true,
-   });
-
-   return result.text;
-}
-
-// Example: Get current company information for outreach
+// Get current company information for outreach
 const companyName = ctx.thisRow.get("Company");
-const news = await researchCompanyNews(companyName);
-ctx.thisRow.set({ "Recent News": news });
+
+const result = await services.ai.generateText({
+   prompt: `Find recent news about ${companyName} including funding, acquisitions, 
+   product launches, or leadership changes. Summarize the top 3 most relevant items 
+   for a sales conversation.`,
+   model: "claude-sonnet-4-5-20250929",
+   enableWebSearch: true,
+});
+
+return result.text;
 ```
 
 ### Summarize Company Website for Sales Context

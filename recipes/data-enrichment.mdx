@@ -116,16 +116,7 @@ const profile = await services.person.linkedin.enrich({
    url: linkedinUrl,
 });
 
-// Store enriched data
-ctx.thisRow.set({
-   "Full Name": profile.full_name,
-   Headline: profile.headline,
-   "Current Title": profile.job_title,
-   Location: profile.location_city,
-   "Years of Experience": Math.floor((profile.total_experience_duration_months || 0) / 12),
-});
-
-return profile;
+return profile.job_title;
 ```
 
 **What you get**:
@@ -171,14 +162,7 @@ const companyData = await services.company.linkedin.enrich({
    url: linkedinUrl,
 });
 
-ctx.thisRow.set({
-   "Employee Count": companyData.size_employees_count,
-   Industry: companyData.industry,
-   "HQ Location": companyData.location_hq_country,
-   Founded: companyData.founded,
-});
-
-return companyData;
+return companyData.size_employees_count;
 ```
 
 **Extended Enrichment** (for high-value accounts):
@@ -192,11 +176,7 @@ const extendedData = await services.company.linkedin.enrich({
    enrichLevel: "extended",
 });
 
-ctx.thisRow.set({
-   "Active Jobs": extendedData.active_job_postings_count,
-   "Employee Review Score": extendedData.company_employee_reviews_aggregate_score,
-   "Growth Signal": extendedData.active_job_postings_count > 10 ? "High Growth" : "Stable",
-});
+return extendedData.active_job_postings_count;
 ```
 
 ---

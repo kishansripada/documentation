@@ -49,7 +49,7 @@ const content = await services.scrape.website({
    url: normalizedUrl,
 });
 
-ctx.thisRow.set({ scraped_content: content.markdown });
+return content.markdown;
 ```
 
 ### normalizeUrl()
@@ -93,126 +93,10 @@ const normalizedDomain = ctx.utils.normalizeUrl(website);
 const existingCompany = await ctx.getRowByValue("normalized_domain", normalizedDomain);
 
 if (existingCompany) {
-   console.log("Company already exists");
-   ctx.thisRow.set({ duplicate: true, original_company_id: existingCompany.id });
-} else {
-   ctx.thisRow.set({ normalized_domain: normalizedDomain, duplicate: false });
-}
-```
-
-## Common Patterns
-
-### URL Normalization Pipeline
-
-```typescript
-// Clean and normalize URLs from user input
-const rawUrl = ctx.thisRow.get("website");
-
-// Step 1: Ensure protocol
-const withProtocol = ctx.utils.ensureHttp(rawUrl);
-
-// Step 2: Store normalized version for deduplication
-const normalized = ctx.utils.normalizeUrl(rawUrl);
-
-ctx.thisRow.set({
-   website_clean: withProtocol,
-   website_normalized: normalized,
-});
-```
-
-### Domain-Based Deduplication
-
-```typescript
-// Find all companies with the same domain
-const currentDomain = ctx.utils.normalizeUrl(ctx.thisRow.get("website"));
-
-const duplicates = await ctx.sheet("Companies").getRowsByValue("website_normalized", currentDomain);
-
-if (duplicates.length > 1) {
-   console.log(`Found ${duplicates.length - 1} duplicates`);
-
-   // Mark all but the first as duplicates
-   const [original, ...dups] = duplicates;
-
-   for (const dup of dups) {
-      if (dup.id !== ctx.rowId) {
-         dup.set({
-            is_duplicate: true,
-            original_company_id: original.id,
-         });
-      }
-   }
-}
-```
-
-### URL Validation
-
-```typescript
-// Validate and clean URLs before API calls
-const rawUrl = ctx.thisRow.get("linkedin_url");
-
-if (!rawUrl) {
-   ctx.thisRow.set({ status: "missing_url" });
-   return;
+   return "duplicate";
 }
 
-// Ensure proper format
-const cleanUrl = ctx.utils.ensureHttp(rawUrl);
-
-try {
-   const data = await services.company.linkedin.enrich({ url: cleanUrl });
-
-   ctx.thisRow.set({
-      status: "enriched",
-      employee_count: data.employeeCount,
-      clean_url: cleanUrl,
-   });
-} catch (error) {
-   ctx.thisRow.set({
-      status: "error",
-      error_message: error.message,
-   });
-}
-```
-
-### Matching and Merging Records
-
-```typescript
-// Match companies across sheets using normalized domains
-const companyWebsite = ctx.thisRow.get("Companies.website");
-const normalizedDomain = ctx.utils.normalizeUrl(companyWebsite);
-
-// Find matching records in another sheet
-const partnerCompanies = await ctx.sheet("Partners").getRowsByValue("website_normalized", normalizedDomain);
-
-if (partnerCompanies.length > 0) {
-   ctx.thisRow.set({
-      is_partner: true,
-      partner_id: partnerCompanies[0].id,
-   });
-}
-```
-
-### Bulk URL Cleaning
-
-```typescript
-// Clean all URLs in a batch
-const allCompanies = await ctx.sheet("Companies").getRowsByValue("status", "needs_cleaning");
-
-for (const company of allCompanies) {
-   const rawUrl = company.get("website");
-
-   if (rawUrl) {
-      const cleanUrl = ctx.utils.ensureHttp(rawUrl);
-      const normalized = ctx.utils.normalizeUrl(rawUrl);
-
-      company.set({
-         website: cleanUrl,
-         website_normalized: normalized,
-         status: "cleaned",
-      });
-   }
-}
+return normalizedDomain;
 ```
 
 ## Best Practices
@@ -222,30 +106,7 @@ for (const company of allCompanies) {
 
 1. **Always normalize for deduplication**: Use `normalizeUrl()` to create a consistent domain format for matching records
 2. **Ensure protocol before API calls**: Use `ensureHttp()` before passing URLs to services that require full URLs
-3. **Store both versions**: Keep both the clean URL (with protocol) and normalized domain for different use cases
-4. **Handle edge cases**: Check for null/empty values before normalizing
+3. **Handle edge cases**: Check for null/empty values before normalizing
 
 </Tip>
-
-### Recommended Pattern
-
-```typescript
-// Complete URL handling pattern
-const rawUrl = ctx.thisRow.get("website");
-
-if (!rawUrl || rawUrl.trim() === "") {
-   ctx.thisRow.set({ status: "missing_url" });
-   return;
-}
-
-// Clean and normalize
-const cleanUrl = ctx.utils.ensureHttp(rawUrl.trim());
-const normalizedDomain = ctx.utils.normalizeUrl(rawUrl);
-
-// Store both versions
-ctx.thisRow.set({
-   website: cleanUrl, // For display and API calls
-   website_normalized: normalizedDomain, // For deduplication
-});
-```
 

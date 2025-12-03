@@ -91,10 +91,7 @@ const result = await services.ai.generateResearch({
   - Potential pain points our solution could address`
 });
 
-ctx.thisRow.set({ 
-  "Account Research": result.content,
-  "Research Cost": result.cost 
-});
+return result.content;
 ```
 
 ### Industry Analysis for Territory Planning
@@ -131,7 +128,7 @@ const result = await services.ai.generateResearch({
   - How might they be evaluating solutions like ours?`
 });
 
-ctx.thisRow.set({ "Competitive Analysis": result.content });
+return result.content;
 ```
 
 ## Use Cases

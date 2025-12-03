@@ -166,13 +166,6 @@ ${scraped.markdown}`,
    model: "gpt-5-mini",
 });
 
-ctx.thisRow.set({
-   "Company Name": companyInfo.object.companyName,
-   Founded: companyInfo.object.foundedYear,
-   "HQ Location": companyInfo.object.headquarters,
-   Description: companyInfo.object.description,
-});
-
 return companyInfo.object;
 ```
 
@@ -251,15 +244,6 @@ const scraped = await services.scrape.website({
 // Social URLs are automatically extracted
 const social = scraped.socialUrls;
 
-ctx.thisRow.set({
-   LinkedIn: social.linkedinCompany[0] || "",
-   Twitter: social.twitterUser[0] || "",
-   Facebook: social.facebookProfile[0] || "",
-   Instagram: social.instagramProfile[0] || "",
-   Email: social.emailGeneral[0] || "",
-   Phone: social.phoneGeneral[0] || "",
-});
-
 return social;
 ```
 
@@ -332,12 +316,6 @@ const research = await services.ai.generateResearch({
   - Potential pain points for sales outreach`,
 });
 
-ctx.thisRow.set({
-   "Research Report": research.content,
-   "Research Cost": research.cost,
-   "Last Researched": new Date().toISOString(),
-});
-
 return research.content;
 ```
 
@@ -358,22 +336,26 @@ return research.content;
   </Accordion>
 
 {" "}
+
 <Accordion title="Use Sitemap for Multi-Page Scraping">
    Use `services.scrape.sitemap()` to find relevant pages before scraping them. It ranks pages by relevance to your
    keywords.
 </Accordion>
 
 {" "}
+
 <Accordion title="Limit Scraping Depth">
    Default to `limit: 1` for single page scraping. Only increase when you specifically need to follow links.
 </Accordion>
 
 {" "}
+
 <Accordion title="Combine Multiple Sources">
    For best results, combine website scraping with web search and LinkedIn data.
 </Accordion>
 
 {" "}
+
 <Accordion title="Handle Scraping Failures">Always check if scraping succeeded before processing the data.</Accordion>
 
   <Accordion title="Use Research Service for Deep Dives">
