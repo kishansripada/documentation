@@ -1,7 +1,12 @@
 ---
 title: "Welcome to Orange Slice"
-description: "AI-powered sales enrichment spreadsheet platform"
+description: "A TypeScript library built for sales workflows"
 ---
+
+<Note>
+   **Join our Discord community** for support, feature requests, and to connect with other users →
+   [discord.gg/2gzDYzfnKJ](https://discord.gg/2gzDYzfnKJ)
+</Note>
 
 <Frame>
    <iframe
@@ -17,17 +22,20 @@ description: "AI-powered sales enrichment spreadsheet platform"
 
 ## What is Orange Slice?
 
-Orange Slice is a **programmable spreadsheet** for sales teams. Each column can run custom JavaScript/TypeScript code with access to:
+Orange Slice is a **TypeScript library built for sales**. Write the logic, we figure out the order—no drag-and-drop, no manual connections, just code.
 
--  **Data enrichment APIs** - LinkedIn profiles, contact info, company data, web scraping
--  **AI models** - Generate personalized content, extract structured data, research companies
--  **Webhooks** - Receive data from external services and forms
+Access a fully-typed library of data enrichments—from LinkedIn profiles to contact info to company intelligence. Just type `services.` and let your editor guide you.
 
-Unlike traditional spreadsheets, you can enrich thousands of rows in parallel with automatic dependency resolution and progress tracking.
+-  **LinkedIn Profiles** - Full profile enrichment with work history, skills & education
+-  **Contact Info** - Work emails, personal emails & phone numbers
+-  **Company Intel** - Firmographics, financials, traffic & headcount trends
+-  **Employee Search** - Find decision makers by title, department & seniority
+-  **AI Research** - Deep research reports with live web access
+-  **Web Scraping** - Extract data from any website with AI parsing
 
 ## The `ctx` Object: Your Primary Interface
 
-The **`ctx` (context) object** is your main way to interact with the spreadsheet. Most commonly, you'll use it to **reference other columns in the same row**:
+The **`ctx` (context) object** is your main way to interact with your workflow. Most commonly, you'll use it to **reference other columns in the same row**:
 
 ```typescript
 // Get prospect data from other columns in the current row
@@ -45,11 +53,11 @@ const outreach = await services.ai.generateText({
 return outreach.text;
 ```
 
-Beyond reading cells, `ctx` lets you write values, navigate between sheets, add rows, and control workflow execution. [Learn more about ctx →](/ctx/overview)
+Beyond reading cells, `ctx` lets you navigate between sheets, add rows, and control workflow execution. [Learn more about ctx →](/ctx/overview)
 
-## The `services` Object: Data Enrichment
+## The `services` Object: Every Enrichment You Need
 
-The **`services` object** gives you access to external data sources and AI capabilities:
+The **`services` object** gives you access to a fully-typed library of data enrichments. Just type `services.` and let your editor guide you:
 
 ```typescript
 // Combine ctx (reading cells) with services (enrichment)
@@ -68,7 +76,7 @@ return linkedin;
 
 ## The `webhook` Object: Receive External Data
 
-The **`webhook` object** allows your spreadsheet to receive HTTP requests from external services, forms, and APIs:
+The **`webhook` object** allows your workflow to receive HTTP requests from external services, forms, and APIs:
 
 ```typescript
 // Receive form submissions or API webhooks
@@ -92,10 +100,10 @@ return { success: true };
 
 <CardGroup cols={3}>
    <Card title="ctx Documentation" icon="code" href="/ctx/overview">
-      Read/write cells, navigate sheets, and control workflows
+      Read cells, navigate sheets, and control workflows
    </Card>
    <Card title="services Documentation" icon="layer-group" href="/services/introduction">
-      LinkedIn, contact info, web scraping, AI, and more
+      LinkedIn profiles, contact info, company intel, AI research
    </Card>
    <Card title="webhook Documentation" icon="webhook" href="/webhooks/overview">
       Receive HTTP requests from external services
@@ -104,9 +112,9 @@ return { success: true };
 
 ## How It Works
 
-### Write Code in Columns
+### Write TypeScript in Columns
 
-Each column can run JavaScript/TypeScript code. Reference other columns with `ctx.thisRow.get()`:
+Each column runs TypeScript code. Reference other columns with `ctx.thisRow.get()`:
 
 ```typescript
 // Find a prospect's LinkedIn profile
@@ -121,14 +129,9 @@ const linkedin = await services.person.linkedin.findUrl({
 return linkedin;
 ```
 
-### Use Built-in Services
+### Workflows That Wire Themselves
 
-Access data enrichment and AI services:
-
--  **LinkedIn** - Find profiles, get employees, enrich company data
--  **Contact Info** - Get verified emails and phone numbers
--  **Web Scraping** - Extract data from any website
--  **AI** - Generate text, extract structured data, research companies
+Write the logic, we figure out the order. No drag-and-drop, no manual connections—just code.
 
 ### Run at Scale
 
@@ -137,22 +140,22 @@ Process thousands of rows in parallel with automatic dependency resolution and p
 ## Get Started
 
 <CardGroup cols={2}>
-   <Card title="Context Object" icon="table-rows" href="/ctx/this-row">
-      Learn how to read and write data on rows
+   <Card title="LinkedIn Profiles" icon="linkedin" href="/services/person/linkedin">
+      Full profile enrichment with work history & skills
    </Card>
-   <Card title="Webhooks" icon="webhook" href="/webhooks/overview">
-      Receive data from external services and forms
+   <Card title="Contact Info" icon="address-book" href="/services/person/contact">
+      Work emails, personal emails & phone numbers
    </Card>
-   <Card title="AI Services" icon="brain" href="/services/ai/overview">
-      Generate text and structured data with AI
+   <Card title="Company Intel" icon="building" href="/services/company/overview">
+      Firmographics, financials & headcount trends
    </Card>
-   <Card title="Person Enrichment" icon="user" href="/services/person/overview">
-      Find LinkedIn profiles and contact information
+   <Card title="Employee Search" icon="users" href="/services/company/employees">
+      Find decision makers by title & seniority
+   </Card>
+   <Card title="AI Research" icon="brain" href="/services/ai/overview">
+      Deep research reports with live web access
    </Card>
    <Card title="Web Scraping" icon="spider-web" href="/services/scrape/overview">
-      Extract data from any website
-   </Card>
-   <Card title="Company Data" icon="building" href="/services/company/overview">
-      Enrich company profiles and find employees
+      Extract data from any website with AI parsing
    </Card>
 </CardGroup>

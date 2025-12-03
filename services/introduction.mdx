@@ -1,64 +1,63 @@
 ---
-title: "Services Overview"
-description: "A comprehensive suite of services for data enrichment, web scraping, and AI-powered operations"
+title: "Every Enrichment You Need"
+description: "A fully-typed library of data enrichments built for sales"
 icon: "layer-group"
 ---
 
 ## Introduction
 
-The Services object provides a powerful collection of APIs for enriching data, scraping web content, and leveraging AI capabilities. All services are organized into logical namespaces for easy discovery and use.
+Access a fully-typed library of data enrichments—from LinkedIn profiles to contact info to company intelligence. All available directly in your code.
 
-## Available Services
+Just type `services.` and let your editor guide you.
+
+## Available Enrichments
 
 <CardGroup cols={2}>
-   <Card title="Person Services" icon="user" href="/services/person/overview">
-      Find and enrich LinkedIn profiles, get contact information
+   <Card title="LinkedIn Profiles" icon="linkedin" href="/services/person/linkedin">
+      Full profile enrichment with work history, skills & education
    </Card>
-   <Card title="Company Services" icon="building" href="/services/company/overview">
-      Discover company data, employees, and career pages
+   <Card title="Contact Info" icon="address-book" href="/services/person/contact">
+      Work emails, personal emails & phone numbers
    </Card>
-   <Card title="Web Services" icon="globe" href="/services/web/overview">
-      Search engines and web scraping capabilities
+   <Card title="Company Intel" icon="building" href="/services/company/overview">
+      Firmographics, financials, traffic & headcount trends
    </Card>
-   <Card title="AI Services" icon="brain" href="/services/ai/overview">
-      Generate text, objects, and research reports with AI
+   <Card title="Employee Search" icon="users" href="/services/company/employees">
+      Find decision makers by title, department & seniority
    </Card>
-   <Card title="Geo Services" icon="location-dot" href="/services/geo/overview">
-      Parse and geocode addresses
+   <Card title="Job Listings" icon="briefcase" href="/services/company/careers">
+      Scrape career pages & track hiring signals
    </Card>
-   <Card title="Scrape Services" icon="spider-web" href="/services/scrape/overview">
-      Advanced website scraping and sitemap discovery
+   <Card title="AI Research" icon="brain" href="/services/ai/overview">
+      Deep research reports with live web access
+   </Card>
+   <Card title="Web Scraping" icon="spider-web" href="/services/scrape/overview">
+      Extract data from any website with AI parsing
+   </Card>
+   <Card title="Web Search" icon="globe" href="/services/web/overview">
+      Search engines and knowledge graph data
    </Card>
 </CardGroup>
 
 ## Getting Started
 
-All services are accessed through the global `services` object:
+All enrichments are fully typed with TypeScript definitions. Just call `services.` and go:
 
 ```typescript
-// Example: Find a LinkedIn profile
+// Find a LinkedIn profile
 const linkedinUrl = await services.person.linkedin.findUrl({
    name: "John Doe",
    company: "Acme Corp",
 });
 
-// Example: Enrich company data
+// Enrich company data
 const companyData = await services.company.linkedin.enrich({
    url: "https://linkedin.com/company/acme",
 });
 
-// Example: Generate AI content
-const result = await services.ai.generateText({
-   prompt: "Write a product description",
-   model: "gpt-5-mini",
+// Get contact info
+const contact = await services.person.contact.get({
+   linkedinUrl,
+   required: ["email"],
 });
 ```
-
-## Key Features
-
--  **LinkedIn Enrichment**: Find and enrich person and company profiles with comprehensive data
--  **Contact Discovery**: Get verified email addresses and phone numbers
--  **Web Scraping**: Extract content from websites with markdown conversion
--  **AI Generation**: Create structured data, text, and research reports
--  **Career Intelligence**: Find job postings and career pages
--  **Geolocation**: Parse and validate addresses with coordinates

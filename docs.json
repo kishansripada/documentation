@@ -30,11 +30,11 @@
             ]
           },
           {
-            "group": "Services",
+            "group": "Enrichments",
             "pages": [
               "services/introduction",
               {
-                "group": "Person Services",
+                "group": "LinkedIn & Contact",
                 "pages": [
                   "services/person/overview",
                   "services/person/linkedin",
@@ -42,7 +42,7 @@
                 ]
               },
               {
-                "group": "Company Services",
+                "group": "Company Intel",
                 "pages": [
                   "services/company/overview",
                   "services/company/linkedin",
@@ -51,14 +51,14 @@
                 ]
               },
               {
-                "group": "Web Services",
+                "group": "Web Search",
                 "pages": [
                   "services/web/overview",
                   "services/web/search"
                 ]
               },
               {
-                "group": "Scrape Services",
+                "group": "Web Scraping",
                 "pages": [
                   "services/scrape/overview",
                   "services/scrape/website",
@@ -66,7 +66,7 @@
                 ]
               },
               {
-                "group": "AI Services",
+                "group": "AI Research",
                 "pages": [
                   "services/ai/overview",
                   "services/ai/generate-object",
@@ -118,6 +118,11 @@
   },
   "navbar": {
     "links": [
+      {
+        "label": "Discord",
+        "href": "https://discord.gg/2gzDYzfnKJ",
+        "icon": "discord"
+      },
       {
         "label": "Support",
         "href": "mailto:kishan@orangeslice.ai"
