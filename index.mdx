@@ -3,21 +3,27 @@ title: "Welcome to Orange Slice"
 description: "AI-powered sales enrichment spreadsheet platform"
 ---
 
-<img className="block dark:hidden rounded-lg" src="/images/garden.png" alt="Orange Slice Hero Light" />
-<img className="hidden dark:block rounded-lg" src="/images/garden.png" alt="Orange Slice Hero Dark" />
+<Frame>
+   <iframe
+      width="100%"
+      height="400"
+      src="https://www.youtube.com/embed/hykfLuy92zE"
+      title="Getting Started with Orange Slice"
+      frameBorder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+   />
+</Frame>
 
 ## What is Orange Slice?
 
-Orange Slice is an **AI-powered spreadsheet** that transforms how sales teams research, enrich, and qualify leads. Think of it as a supercharged spreadsheet where every column can be programmable, AI-powered, and connected to hundreds of data sources—all without writing complex code.
+Orange Slice is a **programmable spreadsheet** for sales teams. Each column can run custom JavaScript/TypeScript code with access to:
 
-Unlike traditional spreadsheets, Orange Slice combines:
+-  **Data enrichment APIs** - LinkedIn profiles, contact info, company data, web scraping
+-  **AI models** - Generate personalized content, extract structured data, research companies
+-  **Webhooks** - Receive data from external services and forms
 
--  **Familiar spreadsheet interface** with the power of custom JavaScript/TypeScript code
--  **AI chat assistant** that writes code, creates columns, and runs bulk operations for you
--  **Built-in data enrichment** from LinkedIn, company databases, web scraping, and contact APIs
--  **Parallel processing** to enrich thousands of rows automatically with progress tracking
-
-Whether you're finding LinkedIn profiles, generating personalized outreach, or scraping company data, Orange Slice makes it as simple as asking your AI assistant or writing a few lines of code.
+Unlike traditional spreadsheets, you can enrich thousands of rows in parallel with automatic dependency resolution and progress tracking.
 
 ## The `ctx` Object: Your Primary Interface
 
@@ -106,11 +112,11 @@ return { success: true };
    </Card>
 </CardGroup>
 
-## Key Capabilities
+## How It Works
 
-### Programmable Columns
+### Write Code in Columns
 
-Every column can execute custom JavaScript/TypeScript code with full AI assistance. Access built-in services for person enrichment, company data, web scraping, AI generation, and more.
+Each column can run JavaScript/TypeScript code. Reference other columns with `ctx.thisRow.get()`:
 
 ```typescript
 // Find a prospect's LinkedIn profile
@@ -122,39 +128,21 @@ const linkedin = await services.person.linkedin.findUrl({
    company,
 });
 
-ctx.thisRow.set({ "LinkedIn URL": linkedin });
 return linkedin;
 ```
 
-### AI-Powered Chat Assistant
+### Use Built-in Services
 
-An intelligent assistant that understands your spreadsheet context and can:
+Access data enrichment and AI services:
 
--  Create and modify columns with natural language
--  Write code for enrichment workflows
--  Analyze data and answer questions
--  Run bulk operations across thousands of rows
+-  **LinkedIn** - Find profiles, get employees, enrich company data
+-  **Contact Info** - Get verified emails and phone numbers
+-  **Web Scraping** - Extract data from any website
+-  **AI** - Generate text, extract structured data, research companies
 
-**Keyboard shortcuts:** `Cmd/Ctrl + J` to toggle chat
+### Run at Scale
 
-### Data Enrichment Library
-
-Integrate with dozens of data providers:
-
--  **LinkedIn** - Find prospect profiles, enrich with job history, get decision makers
--  **Contact Info** - Verified work emails and phone numbers for outreach
--  **Company Intelligence** - Employee counts, funding, growth signals, tech stacks
--  **Web Scraping** - Extract company data from websites for qualification
--  **AI & Research** - Generate personalized outreach, research accounts, qualify leads
-
-### Bulk Processing
-
-Run operations on thousands of rows efficiently with:
-
--  Parallel processing across multiple rows
--  Dependency resolution (columns run in the right order)
--  Progress tracking and cost monitoring
--  Pause, resume, and retry capabilities
+Process thousands of rows in parallel with automatic dependency resolution and progress tracking.
 
 ## Get Started
 

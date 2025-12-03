@@ -1,279 +1,63 @@
 ---
-title: "Workflow Control"
+title: "Workflows"
 description: "Orchestrate execution with sleep and halt"
 icon: "traffic-light"
 ---
 
+<Frame>
+  <iframe
+    width="100%"
+    height="400"
+    src="https://www.youtube.com/embed/JyM_-0nY1Yo"
+    title="Workflow Control in Orange Slice"
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  />
+</Frame>
+
 ## Overview
 
-The `ctx` object provides workflow control methods that help you manage execution timing and optimize resource usage. These methods are essential for building efficient, cost-effective data pipelines.
+The `ctx` object provides workflow control methods that help you manage execution timing and optimize resource usage.
 
 ## Methods
 
 ### sleep()
 
-Pause execution for a specified duration. Useful for waiting for external processes or spacing out API calls.
+Pause execution for a specified duration.
 
 ```typescript
-ctx.sleep(milliseconds: number | string): Promise<void>
+ctx.sleep(milliseconds: number): Promise<void>
 ```
-
-**Parameters:**
-
--  `milliseconds` - The number of milliseconds to sleep (can be a number or string)
 
 **Example:**
 
 ```typescript
-// Sleep for 1 second
-await ctx.sleep(1000);
-
-// Sleep for 5 seconds
-await ctx.sleep(5000);
-
-// Sleep using a string
-await ctx.sleep("2000");
+await ctx.sleep(1000); // Sleep for 1 second
 ```
 
 ### halt()
 
-Signal to the workflow orchestrator that this column's result makes all other columns in the row pointless. This is an optimization hint that helps the system avoid wasted parallel work.
+Signal to the workflow orchestrator that this column's result makes all other columns in the row pointless. This helps the system avoid wasted parallel work.
 
 ```typescript
 ctx.halt(reason?: string): void
 ```
 
-**Parameters:**
-
--  `reason` - Optional explanation for why execution is being halted
-
 <Warning>
-   **Important:** `halt()` is NOT an error handler or early return mechanism. It's a workflow optimization signal that
-   should only be used AFTER expensive operations when the negative result disqualifies the entire row.
+   `halt()` should only be used AFTER expensive operations when the result disqualifies the entire row. Don't use it for simple validation or early returns.
 </Warning>
-
-**When to Use `halt()`:**
-
-✅ **DO use `halt()` when:**
-
--  You've completed an expensive operation (API call, AI generation, scraping)
--  The result indicates the entire row is not worth processing further
--  Other columns in the row would be wasted work
-
-❌ **DO NOT use `halt()` for:**
-
--  Checking if inputs exist (use regular conditionals)
--  Normal early returns
--  Error handling
--  Validation before expensive work
 
 **Example:**
 
 ```typescript
-// ✅ CORRECT: After expensive AI analysis
 const analysis = await services.ai.generateObject({
    prompt: `Analyze if ${companyName} is in our ICP`,
-   schema: z.object({
-      isICP: z.boolean(),
-      reason: z.string(),
-   }),
-   model: "claude-sonnet-4-5-20250929",
+   schema: z.object({ isICP: z.boolean() }),
 });
 
 if (!analysis.object.isICP) {
    ctx.halt("Not in ICP");
    return false;
 }
-
-// Continue with other expensive operations...
-```
-
-```typescript
-// ❌ INCORRECT: Before expensive work
-const email = ctx.thisRow.get("email");
-
-if (!email) {
-   ctx.halt("No email"); // DON'T DO THIS
-   return;
-}
-
-// This should just be a regular early return
-```
-
-## Common Patterns
-
-### Optimizing with halt()
-
-```typescript
-// Column: ICP Analysis (runs first)
-const companyData = await services.company.linkedin.enrich({
-   url: ctx.thisRow.get("linkedin_url"),
-});
-
-const isICP =
-   companyData.employeeCount >= 50 && companyData.employeeCount <= 500 && companyData.industry === "Technology";
-
-if (!isICP) {
-   ctx.halt("Not in ICP criteria");
-   return false;
-}
-
-return true;
-
-// Other columns (Contact Enrichment, AI Analysis, etc.) won't waste resources
-// on rows that aren't in the ICP
-```
-
-### Polling with Sleep
-
-```typescript
-// Wait for an external process to complete
-const jobId = await services.scrape.apify.startJob({ url: websiteUrl });
-
-let status = "running";
-let attempts = 0;
-const maxAttempts = 20;
-
-while (status === "running" && attempts < maxAttempts) {
-   await ctx.sleep(5000); // Wait 5 seconds
-
-   const result = await services.scrape.apify.getJobStatus({ jobId });
-   status = result.status;
-
-   attempts++;
-}
-
-if (status === "completed") {
-   const data = await services.scrape.apify.getJobResult({ jobId });
-   return data;
-} else {
-   throw new Error("Job did not complete in time");
-}
-```
-
-### Multi-Stage Workflow with halt()
-
-```typescript
-// Stage 1: Quick validation (cheap)
-const linkedinUrl = ctx.thisRow.get("linkedin_url");
-
-if (!linkedinUrl || !linkedinUrl.includes("linkedin.com")) {
-   // Regular early return - no expensive work done yet
-   return "Invalid URL";
-}
-
-// Stage 2: Enrichment (expensive)
-const companyData = await services.company.linkedin.enrich({ url: linkedinUrl });
-
-// Stage 3: ICP Check (after expensive work)
-const isQualified = companyData.employeeCount >= 100 && ["Technology", "Software"].includes(companyData.industry);
-
-if (!isQualified) {
-   ctx.halt("Company doesn't meet ICP criteria");
-   return false;
-}
-
-// Stage 4: Continue with other expensive operations
-// (These won't run on disqualified rows in future executions)
-return true;
-```
-
-### Batch Processing with Delays
-
-```typescript
-// Process items in batches with delays between batches
-const allItems = ctx.thisRow.get("items_to_process"); // Array of items
-const batchSize = 10;
-
-const results = [];
-
-for (let i = 0; i < allItems.length; i += batchSize) {
-   const batch = allItems.slice(i, i + batchSize);
-
-   // Process batch in parallel
-   const batchResults = await Promise.all(
-      batch.map((item) =>
-         services.ai.generateObject({
-            prompt: `Analyze: ${item}`,
-            schema: mySchema,
-         })
-      )
-   );
-
-   results.push(...batchResults);
-
-   // Wait between batches
-   if (i + batchSize < allItems.length) {
-      await ctx.sleep(2000);
-   }
-}
-
-ctx.thisRow.set({ processed_results: results });
-```
-
-### Conditional Workflow Optimization
-
-```typescript
-// Column 1: Lead Scoring (runs first, potentially halts)
-const score = await services.ai.generateObject({
-   prompt: `Score this lead: ${JSON.stringify(leadData)}`,
-   schema: z.object({ score: z.number(), qualified: z.boolean() }),
-});
-
-ctx.thisRow.set({ lead_score: score.object.score });
-
-if (!score.object.qualified) {
-   ctx.halt("Lead score below threshold");
-   return false;
-}
-
-return true;
-
-// Column 2: Contact Enrichment (only runs on qualified leads)
-const contacts = await services.person.contact.find({
-   name: ctx.thisRow.get("name"),
-   company: ctx.thisRow.get("company"),
-});
-
-return contacts.email;
-
-// Column 3: AI Personalization (only runs on qualified leads)
-const message = await services.ai.generateText({
-   prompt: `Write a personalized message for ${ctx.thisRow.get("name")}`,
-});
-
-return message.text;
-```
-
-## Best Practices
-
-<Tip>
-   **Workflow Optimization Tips:**
-
-1. **Use `halt()` strategically**: Only after expensive operations that can disqualify a row
-2. **Order columns wisely**: Put qualifying/filtering columns first, expensive operations later
-3. **Batch with delays**: Process items in batches with sleep intervals for better resource management
-4. **Provide halt reasons**: Always include a descriptive reason when calling `halt()` for debugging
-
-</Tip>
-
-### Recommended Column Order
-
-```typescript
-// Column 1: Quick Validation (cheap)
-// - Check if required fields exist
-// - Validate formats
-// - No halt() needed here
-
-// Column 2: Qualification Check (expensive, can halt)
-// - API calls, AI analysis, scraping
-// - Call halt() if disqualified
-
-// Column 3: Enrichment (expensive, only runs on qualified rows)
-// - Additional API calls
-// - Data enrichment
-
-// Column 4: Final Processing (expensive, only runs on qualified rows)
-// - AI generation
-// - Complex transformations
 ```

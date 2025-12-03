@@ -24,9 +24,7 @@
             "pages": [
               "ctx/overview",
               "ctx/this-row",
-              "ctx/this-cell",
               "ctx/sheets",
-              "ctx/cells",
               "ctx/utilities",
               "ctx/workflow"
             ]
