@@ -30,65 +30,63 @@
             ]
           },
           {
-            "group": "Enrichments",
+            "group": "Services (Enrichments)",
             "pages": [
               "services/introduction",
-              {
-                "group": "LinkedIn & Contact",
-                "pages": [
-                  "services/person/overview",
-                  "services/person/linkedin",
-                  "services/person/contact"
-                ]
-              },
-              {
-                "group": "Company Intel",
-                "pages": [
-                  "services/company/overview",
-                  "services/company/linkedin",
-                  "services/company/employees",
-                  "services/company/careers"
-                ]
-              },
-              {
-                "group": "Web Search",
-                "pages": [
-                  "services/web/overview",
-                  "services/web/search"
-                ]
-              },
-              {
-                "group": "Web Scraping",
-                "pages": [
-                  "services/scrape/overview",
-                  "services/scrape/website",
-                  "services/scrape/sitemap"
-                ]
-              },
-              {
-                "group": "AI Research",
-                "pages": [
-                  "services/ai/overview",
-                  "services/ai/generate-object",
-                  "services/ai/generate-text",
-                  "services/ai/generate-research"
-                ]
-              },
-              {
-                "group": "Geo Services",
-                "pages": [
-                  "services/geo/overview",
-                  "services/geo/parse-address"
-                ]
-              }
+              "services/filter-spec"
             ]
           },
           {
-            "group": "Webhooks",
+            "group": "Person",
             "pages": [
-              "webhooks/overview",
-              "webhooks/setup",
-              "webhooks/reference"
+              "services/person/find-url",
+              "services/person/enrich",
+              "services/person/get-contact"
+            ]
+          },
+          {
+            "group": "Company",
+            "pages": [
+              "services/company/find-url",
+              "services/company/enrich",
+              "services/company/get-employees",
+              "services/company/find-careers",
+              "services/company/scrape-jobs"
+            ]
+          },
+          {
+            "group": "Web Search",
+            "pages": [
+              "services/web/search"
+            ]
+          },
+          {
+            "group": "Web Scraping",
+            "pages": [
+              "services/scrape/website",
+              "services/scrape/sitemap",
+              "services/scrape/list",
+              "services/scrape/linkedin-post"
+            ]
+          },
+          {
+            "group": "AI",
+            "pages": [
+              "services/ai/generate-object",
+              "services/ai/generate-text",
+              "services/ai/generate-research"
+            ]
+          },
+          {
+            "group": "Geo",
+            "pages": [
+              "services/geo/parse-address"
+            ]
+          },
+          {
+            "group": "Google Maps",
+            "pages": [
+              "services/google-maps/scrape"
             ]
           }
         ]

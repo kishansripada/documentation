@@ -1,0 +1,130 @@
+---
+title: "Enrich LinkedIn Profile"
+description: "Get comprehensive data from a LinkedIn profile"
+icon: "user-plus"
+---
+
+<Info><Icon icon="coins" /> **5 credits** per profile</Info>
+
+## Method
+
+```typescript
+services.person.linkedin.enrich(params)
+```
+
+## Input
+
+<ParamField path="url" type="string" optional>
+   LinkedIn profile URL to enrich
+</ParamField>
+
+<ParamField path="username" type="string" optional>
+   LinkedIn username
+</ParamField>
+
+<ParamField path="id" type="number" optional>
+   CoreSignal employee ID
+</ParamField>
+
+<Note>At least one of `url`, `username`, or `id` must be provided.</Note>
+
+## Output
+
+<ResponseField name="id" type="number">
+   CoreSignal employee ID
+</ResponseField>
+
+<ResponseField name="full_name" type="string">
+   Complete name
+</ResponseField>
+
+<ResponseField name="name_first" type="string">
+   First name
+</ResponseField>
+
+<ResponseField name="name_last" type="string">
+   Last name
+</ResponseField>
+
+<ResponseField name="headline" type="string">
+   Professional headline
+</ResponseField>
+
+<ResponseField name="job_title" type="string">
+   Current job title
+</ResponseField>
+
+<ResponseField name="company_id" type="number">
+   Current company ID
+</ResponseField>
+
+<ResponseField name="description" type="string">
+   Profile summary/about section
+</ResponseField>
+
+<ResponseField name="picture_url" type="string">
+   Profile picture URL
+</ResponseField>
+
+<ResponseField name="websites_linkedin" type="string">
+   LinkedIn profile URL
+</ResponseField>
+
+<ResponseField name="follower_count" type="number">
+   Number of followers
+</ResponseField>
+
+<ResponseField name="connections_count" type="number">
+   Number of connections
+</ResponseField>
+
+<ResponseField name="skills" type="string[]">
+   Array of skills
+</ResponseField>
+
+<ResponseField name="location_city" type="string">
+   City
+</ResponseField>
+
+<ResponseField name="location_state" type="string">
+   State/region
+</ResponseField>
+
+<ResponseField name="location_country" type="string">
+   Country
+</ResponseField>
+
+<ResponseField name="department" type="string">
+   Department/function
+</ResponseField>
+
+<ResponseField name="management_level" type="string">
+   Management level (e.g., "Senior", "Manager")
+</ResponseField>
+
+<ResponseField name="experience" type="array">
+   Work history with company enrichment data
+</ResponseField>
+
+<ResponseField name="education" type="array">
+   Education entries
+</ResponseField>
+
+<ResponseField name="certifications" type="array">
+   Professional certifications
+</ResponseField>
+
+<ResponseField name="languages" type="array">
+   Languages and proficiency
+</ResponseField>
+
+## Example
+
+```typescript
+const profile = await services.person.linkedin.enrich({
+   url: ctx.thisRow.get("LinkedIn URL"),
+});
+
+return profile.job_title;
+```
+

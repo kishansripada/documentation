@@ -1,188 +1,44 @@
 ---
 title: "Generate Text"
-description: "Generate text content with optional web search capabilities"
-icon: "text"
+description: "Generate text with optional web search"
+icon: "font"
 ---
 
-## Generate Text
+<Info><Icon icon="coins" /> **1 credit** per call</Info>
 
-Generate high-quality text content using AI, with optional web search for up-to-date information.
-
-<Tip>
-   **Best for Prospect Research Across Multiple Sources**: Use `enableWebSearch: true` for research that requires
-   multiple sources, like "What are the latest funding rounds for fintech companies?" or "What challenges is the
-   healthcare industry facing?" This searches across multiple sources to enrich your sales context.
-</Tip>
-
-<Warning>
-   **Not for Specific Website Data**: If you need to extract information from a specific website, use
-   `services.scrape.website()` + `services.ai.generateObject()` instead. It's more accurate and cost-effective.
-</Warning>
-
-### Method
+## Method
 
 ```typescript
-services.ai.generateText(params);
+services.ai.generateText(params)
 ```
 
-### Parameters
+## Input
 
 <ParamField path="prompt" type="string" required>
-   The prompt describing what text to generate
+   Text generation prompt
 </ParamField>
 
-<ParamField path="model" type="string" required>
-   The AI model to use. Options: - `"gpt-5-mini"` - Fast and cost-effective - `"claude-sonnet-4-5-20250929"` - High
-   quality, balanced performance
+<ParamField path="enableWebSearch" type="boolean" optional>
+   Enable web search for real-time information
 </ParamField>
 
-<ParamField path="enableWebSearch" type="boolean" optional default={false}>
-   Enable web search to include current information in the response
+<ParamField path="model" type="string" default="gpt-5-mini">
+   Model: `"gpt-5-mini"` or `"claude-sonnet-4-5-20250929"`
 </ParamField>
 
-### Returns
+## Output
 
-Returns a `Promise` with:
-
-<ResponseField name="text" type="string" required>
-   The generated text content
+<ResponseField name="text" type="string">
+   Generated text
 </ResponseField>
 
-## Examples
-
-### Basic Text Generation
+## Example
 
 ```typescript
-// Generate personalized outreach email using prospect data
-const name = ctx.thisRow.get("Name");
-const company = ctx.thisRow.get("Company");
-const title = ctx.thisRow.get("Title");
-
 const result = await services.ai.generateText({
-   prompt: `Write a personalized cold email to ${name}, a ${title} at ${company}. 
-  Our product helps sales teams automate lead enrichment. 
-  Keep it under 100 words and include a clear call-to-action.`,
-   model: "gpt-5-mini",
+   prompt: `Write a one-line value prop for ${ctx.thisRow.get("Company")}`,
+   model: "claude-sonnet-4-5-20250929"
 });
 
 return result.text;
 ```
-
-### With Web Search
-
-<Info>
-   **When to Use Web Search**: Enable web search for questions that require current information from multiple sources,
-   not available on a single specific website.
-</Info>
-
-```typescript
-// Research a prospect's company for recent news and developments
-const company = ctx.thisRow.get("Company");
-
-const result = await services.ai.generateText({
-   prompt: `What are the latest news, funding rounds, and product launches for ${company}? 
-  Focus on information relevant for sales outreach.`,
-   model: "claude-sonnet-4-5-20250929",
-   enableWebSearch: true,
-});
-
-return result.text;
-// Response will include current information from the web
-```
-
-### Research Prospect's Industry
-
-```typescript
-// Research a prospect's industry to personalize outreach
-const industry = ctx.thisRow.get("Industry");
-const company = ctx.thisRow.get("Company");
-
-const result = await services.ai.generateText({
-   prompt: `What are the biggest challenges facing ${industry} companies like ${company} in 2024? 
-  Focus on operational and growth challenges that sales tools could address.`,
-   model: "claude-sonnet-4-5-20250929",
-   enableWebSearch: true,
-});
-
-return result.text;
-// AI will search multiple sources and synthesize an answer
-```
-
-### Generate Personalized Value Proposition
-
-```typescript
-const name = ctx.thisRow.get("Name");
-const title = ctx.thisRow.get("Title");
-const company = ctx.thisRow.get("Company");
-const painPoints = ctx.thisRow.get("Pain Points");
-
-const result = await services.ai.generateText({
-   prompt: `
-    Write a personalized value proposition for ${name}, ${title} at ${company}.
-    Their key challenges: ${painPoints}
-    Our solution: AI-powered sales enrichment that saves 10+ hours per week
-    Tone: Professional and consultative
-    Length: 2-3 sentences
-  `,
-   model: "claude-sonnet-4-5-20250929",
-});
-
-return result.text;
-```
-
-## Use Cases
-
-### Research Prospect Company News
-
-```typescript
-// Get current company information for outreach
-const companyName = ctx.thisRow.get("Company");
-
-const result = await services.ai.generateText({
-   prompt: `Find recent news about ${companyName} including funding, acquisitions, 
-   product launches, or leadership changes. Summarize the top 3 most relevant items 
-   for a sales conversation.`,
-   model: "claude-sonnet-4-5-20250929",
-   enableWebSearch: true,
-});
-
-return result.text;
-```
-
-### Summarize Company Website for Sales Context
-
-```typescript
-async function summarizeCompanyForSales(websiteUrl: string) {
-   const scraped = await services.scrape.website({ url: websiteUrl });
-
-   const summary = await services.ai.generateText({
-      prompt: `Based on this company website, identify: 
-    1) What products/services they offer
-    2) Their target market
-    3) Key pain points they might have
-    4) Potential buying signals
-    
-    Website content: ${scraped.markdown}`,
-      model: "gpt-5-mini",
-   });
-
-   return summary.text;
-}
-```
-
-## Best Practices
-
-<Tip>
-   **Detailed Prompts**: The more specific your prompt, the better the output. Include context, tone, length, format,
-   and any specific requirements.
-</Tip>
-
-<Warning>
-   **Web Search**: Only enable web search when you need current information. It's slower and more expensive than using
-   the model's built-in knowledge.
-</Warning>
-
-<Info>
-   **Model Selection**: Use `gpt-5-mini` for most tasks (faster and cheaper). Use `claude-sonnet-4-5-20250929` for
-   complex writing requiring nuance and high quality.
-</Info>

@@ -1,0 +1,43 @@
+---
+title: "Scrape List"
+description: "AI-powered scraping for lists of items on any website"
+icon: "list"
+---
+
+<Info><Icon icon="coins" /> **1 credit** per call</Info>
+
+## Method
+
+```typescript
+services.scrape.list(params)
+```
+
+<Warning>
+Return keys are **non-deterministic** - you won't know the exact schema until runtime. This function can take minutes to run.
+</Warning>
+
+## Input
+
+<ParamField path="url" type="string" required>
+   URL containing the list to scrape
+</ParamField>
+
+<ParamField path="hint" type="string" required>
+   Description of what items to scrape (e.g., "portfolio companies", "team members"). Do NOT list specific properties.
+</ParamField>
+
+## Output
+
+Returns an array of objects. The exact keys depend on the page content and are determined at runtime by AI.
+
+## Example
+
+```typescript
+const companies = await services.scrape.list({
+   url: "https://vc-firm.com/portfolio",
+   hint: "portfolio companies"
+});
+
+return companies;
+```
+

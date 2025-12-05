@@ -1,0 +1,80 @@
+---
+title: "Get Contact Info"
+description: "Get email and phone number for a person"
+icon: "address-book"
+---
+
+<Info>
+<Icon icon="coins" /> **5 credits** for email | **100 credits** for phone | **105 credits** for both
+
+Only charged if the requested data is found and returned.
+</Info>
+
+## Method
+
+```typescript
+services.person.contact.get(params)
+```
+
+## Input
+
+<ParamField path="linkedinUrl" type="string" optional>
+   LinkedIn profile URL
+</ParamField>
+
+<ParamField path="firstName" type="string" optional>
+   First name (required if no linkedinUrl)
+</ParamField>
+
+<ParamField path="lastName" type="string" optional>
+   Last name (required if no linkedinUrl)
+</ParamField>
+
+<ParamField path="company" type="string" optional>
+   Company name (required if no linkedinUrl)
+</ParamField>
+
+<ParamField path="required" type="array" required>
+   Contact types to retrieve: `"email"`, `"phone"`, `"work_email"`
+</ParamField>
+
+<ParamField path="domain" type="string" optional>
+   Domain for work email lookup
+</ParamField>
+
+<Note>Provide either `linkedinUrl` OR (`firstName` + `lastName` + `company`).</Note>
+
+## Output
+
+<ResponseField name="emails" type="array">
+   Array of email objects with `email`, `type` (work/personal/unknown), and `confidence`
+</ResponseField>
+
+<ResponseField name="phones" type="array">
+   Array of phone objects with `phone`, `type`, and `confidence`
+</ResponseField>
+
+## Example
+
+```typescript
+const contact = await services.person.contact.get({
+   linkedinUrl: ctx.thisRow.get("LinkedIn URL"),
+   required: ["email", "phone"]
+});
+
+return contact.emails[0]?.email;
+```
+
+```typescript
+// Without LinkedIn URL
+const contact = await services.person.contact.get({
+   firstName: "John",
+   lastName: "Smith",
+   company: "Acme Corp",
+   required: ["work_email"],
+   domain: "acme.com"
+});
+
+return contact.emails.find(e => e.type === "work")?.email;
+```
+

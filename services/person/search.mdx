@@ -1,0 +1,74 @@
+---
+title: "Search People"
+description: "Search for people across LinkedIn using FilterSpec queries"
+icon: "users"
+---
+
+## Method
+
+```typescript
+services.person.linkedin.search(params);
+```
+
+<Note>For employees at ONE specific company, use `company.getEmployees` instead.</Note>
+
+## Input
+
+<ParamField path="filters" type="FilterSpec" required>
+   FilterSpec object for searching employees. Supports: - `textAny` / `textAll` - text field matching - `range` -
+   numeric ranges - `termsAny` / `termsAll` - discrete value matching - `exists` / `notExists` - field existence checks
+</ParamField>
+
+<ParamField path="options.limit" type="number" optional>
+   Max employees per call (500 max). **Start with limit=1 to test queries.**
+</ParamField>
+
+<ParamField path="options.after" type="string" optional>
+   Pagination cursor from previous response
+</ParamField>
+
+### Common Filter Fields
+
+| Field                           | Type  | Description                         |
+| ------------------------------- | ----- | ----------------------------------- |
+| `headline`                      | text  | Professional headline               |
+| `job_title`                     | text  | Current job title                   |
+| `skills`                        | text  | Skills array                        |
+| `department`                    | terms | Function (Engineering, Sales, etc.) |
+| `management_level`              | terms | Level (Director, VP, C-Suite, etc.) |
+| `location_regions`              | terms | Geographic region                   |
+| `experience.company_id`         | terms | Company ID from experience          |
+| `experience.company_industry`   | terms | Industry                            |
+| `experience.company_size_range` | terms | Company size                        |
+
+## Output
+
+<ResponseField name="employees" type="array">
+   Array of employee profiles (same schema as enrich output)
+</ResponseField>
+
+<ResponseField name="nextPageAfter" type="string | null">
+   Pagination cursor for next page
+</ResponseField>
+
+<ResponseField name="totalResults" type="number | null">
+   Total matching results
+</ResponseField>
+
+## Example
+
+```typescript
+const results = await services.person.linkedin.search({
+   filters: {
+      textAny: [{ field: "job_title", terms: ["CTO", "VP Engineering"] }],
+      termsAny: [
+         { field: "location_regions", values: ["California, United States"] },
+         { field: "management_level", values: ["VP", "C-Suite"] },
+      ],
+      range: [{ field: "experience.company_size_employees_count", gte: 50, lte: 500 }],
+   },
+   options: { limit: 10 },
+});
+
+return results.employees;
+```

@@ -1,0 +1,59 @@
+---
+title: "Find Careers Page"
+description: "Find the careers page URL for a company"
+icon: "briefcase"
+---
+
+<Info><Icon icon="coins" /> **1 credit** per call</Info>
+
+## Method
+
+```typescript
+services.company.careers.findPage(params)
+```
+
+## Input
+
+<ParamField path="domain" type="string" optional>
+   Company domain to search
+</ParamField>
+
+<ParamField path="companyLinkedinUrl" type="string" optional>
+   LinkedIn company URL (improves accuracy)
+</ParamField>
+
+## Output
+
+<ResponseField name="url" type="string">
+   The careers page URL
+</ResponseField>
+
+## Example
+
+```typescript
+const careers = await services.company.careers.findPage({
+   domain: ctx.thisRow.get("Website"),
+   companyLinkedinUrl: ctx.thisRow.get("Company LinkedIn"),
+});
+
+return careers.url;
+```
+
+### Find careers page and scrape jobs
+
+```typescript
+// First find the careers page
+const careers = await services.company.careers.findPage({
+   domain: ctx.thisRow.get("Website"),
+   companyLinkedinUrl: ctx.thisRow.get("Company LinkedIn"),
+});
+
+// Then scrape the job listings
+const jobs = await services.company.careers.scrapeJobs({
+   url: careers.url,
+   maxJobs: 50,
+});
+
+return jobs.length;
+```
+

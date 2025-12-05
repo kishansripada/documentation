@@ -1,194 +1,37 @@
 ---
 title: "Generate Research"
-description: "Create comprehensive research reports with web access"
-icon: "magnifying-glass-chart"
+description: "Deep research with web access"
+icon: "microscope"
 ---
 
-## Generate Research Report
+<Info><Icon icon="coins" /> **1 credit** per call</Info>
 
-Conduct deep research on any topic with web access and generate comprehensive, well-sourced reports.
-
-<Warning>
-  **Premium Feature**: This performs extensive, deep research across many sources. It's significantly more expensive than other AI services but provides the most thorough, well-researched content with citations.
-</Warning>
-
-<Tip>
-  **When to Use**: Reserve this for deep account research, competitive intelligence on prospects, industry analysis for territory planning, or comprehensive company due diligence before major deals. For simpler prospect research, use `generateText` with web search instead.
-</Tip>
-
-## When to Use This vs Other Tools
-
-<CardGroup cols={2}>
-  <Card title="Use Generate Research For" icon="check">
-    - Deep account research for enterprise deals
-    - Competitive analysis of prospect's competitors
-    - Industry trend analysis for territory planning
-    - Company due diligence before major contracts
-    - Multi-faceted prospect intelligence
-    - Research reports requiring citations
-  </Card>
-  <Card title="Use Generate Text Instead For" icon="lightbulb">
-    - Quick prospect company news
-    - Single-topic inquiries (funding, leadership)
-    - Personalized outreach generation
-    - Simple lead qualification
-    - High-volume enrichment workflows
-  </Card>
-</CardGroup>
-
-### Method
+## Method
 
 ```typescript
 services.ai.generateResearch(params)
 ```
 
-### Parameters
+Performs comprehensive web research on a topic using AI.
+
+## Input
 
 <ParamField path="query" type="string" required>
-  The research question or topic to investigate
+   Research query/topic
 </ParamField>
 
-### Returns
+## Output
 
-Returns a `Promise` with:
-
-<ResponseField name="content" type="string" required>
-  The comprehensive research report
+<ResponseField name="content" type="string">
+   Research report content
 </ResponseField>
 
-<ResponseField name="usage" type="object" required>
-  Token usage statistics
-  
-  <Expandable title="Usage Properties">
-    <ResponseField name="prompt_tokens" type="number">
-      Number of tokens in the prompts
-    </ResponseField>
-    <ResponseField name="completion_tokens" type="number">
-      Number of tokens in the completions
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-<ResponseField name="cost" type="number" required>
-  The cost in USD for this research request
-</ResponseField>
-
-## Examples
-
-### Deep Account Research
+## Example
 
 ```typescript
-// Comprehensive research on a high-value prospect
-const companyName = ctx.thisRow.get("Company");
-
-const result = await services.ai.generateResearch({
-  query: `Conduct comprehensive research on ${companyName} including:
-  - Recent news and developments
-  - Financial performance and funding
-  - Key executives and decision makers
-  - Product offerings and market position
-  - Growth indicators and expansion plans
-  - Potential pain points our solution could address`
+const research = await services.ai.generateResearch({
+   query: `What is ${ctx.thisRow.get("Company")}'s market position and recent news?`
 });
 
-return result.content;
+return research.content;
 ```
-
-### Industry Analysis for Territory Planning
-
-```typescript
-// Research an industry to prioritize prospects and tailor messaging
-const industry = ctx.thisRow.get("Target Industry");
-
-const result = await services.ai.generateResearch({
-  query: `Analyze the ${industry} industry including:
-  - Market size and growth trends
-  - Major players and market share
-  - Common challenges and pain points
-  - Technology adoption trends
-  - Buying patterns and decision-making processes`
-});
-
-return result.content;
-// Comprehensive report to inform sales strategy
-```
-
-### Competitive Intelligence on Prospect's Market
-
-```typescript
-// Research a prospect's competitive landscape
-const company = ctx.thisRow.get("Company");
-const industry = ctx.thisRow.get("Industry");
-
-const result = await services.ai.generateResearch({
-  query: `Analyze the competitive landscape for ${company} in the ${industry} space:
-  - Who are their main competitors?
-  - What is ${company}'s market position?
-  - What are their competitive advantages and weaknesses?
-  - How might they be evaluating solutions like ours?`
-});
-
-return result.content;
-```
-
-## Use Cases
-
-### Prospect's Competitive Landscape Analysis
-
-```typescript
-async function analyzeProspectCompetitors(companyName: string, industry: string) {
-  const result = await services.ai.generateResearch({
-    query: `
-      Analyze the competitive landscape for ${companyName} in ${industry}:
-      - Who are ${companyName}'s main competitors?
-      - What is ${companyName}'s market positioning?
-      - Key differentiators and competitive advantages
-      - Potential pain points and challenges
-      - How this affects their buying priorities
-      - Opportunities for our solution
-    `
-  });
-  
-  return {
-    report: result.content,
-    cost: result.cost
-  };
-}
-```
-
-### Enterprise Deal Due Diligence
-
-```typescript
-async function enterpriseDealResearch(company: string) {
-  const result = await services.ai.generateResearch({
-    query: `
-      Conduct due diligence on ${company} for a potential enterprise deal:
-      - Financial health and stability indicators
-      - Recent funding rounds and investor sentiment
-      - Leadership team and key decision makers
-      - Company culture and employee satisfaction
-      - Technology stack and current vendors
-      - Potential risks or red flags
-      - Buying signals and readiness indicators
-    `
-  });
-  
-  return result.content;
-}
-```
-
-## Best Practices
-
-<Tip>
-  **Specific Questions**: The more specific your research query, the more focused and useful the report will be. Include specific aspects you want covered.
-</Tip>
-
-<Warning>
-  **Cost Management**: Research reports are expensive due to extensive web searching and analysis. Use them for important research needs, not casual questions.
-</Warning>
-
-<Info>
-  **Report Quality**: Research reports include citations and sources from the web, making them more reliable than standard text generation for factual information.
-</Info>
-
-

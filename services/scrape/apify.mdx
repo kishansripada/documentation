@@ -1,0 +1,52 @@
+---
+title: "Run Apify Actor"
+description: "Run an Apify actor and get results"
+icon: "robot"
+---
+
+## Method
+
+```typescript
+services.scrape.apify.runActor(params)
+```
+
+## Input
+
+<ParamField path="actor" type="string" required>
+   Apify actor name/ID
+</ParamField>
+
+<ParamField path="input" type="any" required>
+   Input object for the actor
+</ParamField>
+
+<ParamField path="datasetListParams" type="object" optional>
+   Dataset retrieval options:
+   - `limit` - Max items to return
+   - `offset` - Starting offset
+   - `clean` - Clean the dataset
+   - `fields` - Specific fields to include
+   - `unwind` - Field to unwind
+</ParamField>
+
+## Output
+
+Returns the actor's output data (schema varies by actor).
+
+## Example
+
+```typescript
+const result = await services.scrape.apify.runActor({
+   actor: "apify/web-scraper",
+   input: {
+      startUrls: [{ url: "https://example.com" }],
+      pageFunction: async function pageFunction(context) {
+         return { title: document.title };
+      }
+   },
+   datasetListParams: { limit: 100 }
+});
+
+return result;
+```
+

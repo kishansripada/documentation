@@ -1,0 +1,76 @@
+---
+title: "Search Companies"
+description: "Search for companies using FilterSpec queries"
+icon: "buildings"
+---
+
+## Method
+
+```typescript
+services.company.linkedin.search(params)
+```
+
+## Input
+
+<ParamField path="filters" type="FilterSpec" required>
+   FilterSpec for company search. Supports:
+   - `textAny` / `textAll` - text field matching
+   - `range` - numeric ranges  
+   - `termsAny` / `termsAll` - discrete value matching
+</ParamField>
+
+<ParamField path="options.limit" type="number" optional>
+   Max companies per call (500 max). **Start with limit=1 to test.**
+</ParamField>
+
+<ParamField path="options.after" type="string" optional>
+   Pagination cursor from previous response
+</ParamField>
+
+<ParamField path="enrichLevel" type="string" default="basic">
+   `"basic"` (Clean index) or `"extended"` (Multi index with deep intelligence). Extended is significantly more expensive.
+</ParamField>
+
+### Common Filter Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | text | Company name |
+| `description` | text | Company description |
+| `industry` | terms | Industry classification |
+| `type` | terms | Company type (Public, Private, etc.) |
+| `size_range` | terms | Employee count range |
+| `size_employees_count` | range | Exact employee count |
+| `location_hq_country` | terms | HQ country |
+| `founded` | range | Year founded |
+
+## Output
+
+<ResponseField name="companies" type="array">
+   Array of company profiles (same schema as enrich output)
+</ResponseField>
+
+<ResponseField name="nextPageAfter" type="string | null">
+   Pagination cursor for next page
+</ResponseField>
+
+<ResponseField name="totalResults" type="number | null">
+   Total matching results
+</ResponseField>
+
+## Example
+
+```typescript
+const results = await services.company.linkedin.search({
+   filters: {
+      textAny: [{ field: "description", terms: ["SaaS", "B2B software"] }],
+      termsAny: [{ field: "industry", values: ["Computer Software"] }],
+      range: [{ field: "size_employees_count", gte: 50, lte: 200 }]
+   },
+   options: { limit: 10 },
+   enrichLevel: "basic"
+});
+
+return results.companies;
+```
+

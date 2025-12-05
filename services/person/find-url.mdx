@@ -1,0 +1,55 @@
+---
+title: "Find LinkedIn URL"
+description: "Search for a LinkedIn profile URL using identifying parameters"
+icon: "magnifying-glass"
+---
+
+<Info><Icon icon="coins" /> **2 credits** per call</Info>
+
+## Method
+
+```typescript
+services.person.linkedin.findUrl(params);
+```
+
+## Input
+
+<ParamField path="name" type="string" optional>
+   Full name of the person
+</ParamField>
+
+<ParamField path="title" type="string" optional>
+   Job title
+</ParamField>
+
+<ParamField path="company" type="string" optional>
+   Company name
+</ParamField>
+
+<ParamField path="keyword" type="string" optional>
+   Additional keyword (industry, specialization, etc.)
+</ParamField>
+
+<ParamField path="email" type="string" optional>
+   Email address
+</ParamField>
+
+<ParamField path="location" type="string" optional>
+   Location string (city, state, country)
+</ParamField>
+
+## Output
+
+Returns `string | undefined` - the LinkedIn profile URL if found.
+
+## Example
+
+```typescript
+const linkedinUrl = await services.person.linkedin.findUrl({
+   name: ctx.thisRow.get("Name"),
+   company: ctx.thisRow.get("Company"),
+   title: ctx.thisRow.get("Title"),
+});
+
+return linkedinUrl;
+```

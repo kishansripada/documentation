@@ -1,378 +1,60 @@
 ---
 title: "Web Search"
-description: "Search Google and access knowledge graph information"
-icon: "magnifying-glass"
+description: "Search Google and access the knowledge graph"
+icon: "magnifying-glass-chart"
 ---
 
-## Search Google
+<Info><Icon icon="coins" /> **1 credit** per search</Info>
 
-Perform Google searches and retrieve results including the knowledge graph.
-
-### Method
+## Method
 
 ```typescript
 services.web.search(params);
 ```
 
-### Parameters
+## Input
 
 <ParamField path="query" type="string" required>
-   The search query. **Never use the `site:` operator** - use the `domain` parameter instead.
+   Search query. Do NOT use `site:` operator - use the `domain` parameter instead.
 </ParamField>
 
 <ParamField path="domain" type="string" optional>
-   Limit search results to a specific domain (e.g., "stripe.com")
+   Restrict search to a specific domain
 </ParamField>
 
-<ParamField path="advance_search" type="boolean" optional default={false}>
-   Enable advanced search features
+<ParamField path="advance_search" type="boolean" optional>
+   Enable advanced search to access the knowledge graph
 </ParamField>
 
-### Returns
+## Output
 
-Returns a `Promise` with:
-
-<ResponseField name="results" type="array" required>
-   Array of search results
-   <Expandable title="Result Object Properties">
-      <ResponseField name="title" type="string">
-         Page title
-      </ResponseField>
-      <ResponseField name="link" type="string">
-         Full URL
-      </ResponseField>
-      <ResponseField name="displayed_link" type="string">
-         Display-friendly URL
-      </ResponseField>
-      <ResponseField name="snippet" type="string">
-         Text snippet from the page
-      </ResponseField>
-   </Expandable>
+<ResponseField name="results" type="array">
+   Search results array: - `title` - Page title - `link` - URL - `displayed_link` - Display URL - `snippet` - Text
+   snippet
 </ResponseField>
 
 <ResponseField name="knowledgeGraph" type="object">
-   Google Knowledge Graph data (when available)
-   <Expandable title="Knowledge Graph Properties">
-      <ResponseField name="title" type="string">
-         Entity title
-      </ResponseField>
-      <ResponseField name="description" type="string">
-         Entity description
-      </ResponseField>
-      <ResponseField name="image" type="string">
-         Image URL
-      </ResponseField>
-      <ResponseField name="website" type="string">
-         Official website
-      </ResponseField>
-      <ResponseField name="hours_links" type="array">
-         Business hours and related links (for local businesses)
-      </ResponseField>
-   </Expandable>
+   Google Knowledge Graph data (if available): - `title` - Entity name - `description` - Entity description - `image` -
+   Image URL - `website` - Official website - `hours_links` - Service links (DoorDash, Uber Eats, etc.)
 </ResponseField>
 
-## Examples
-
-### Basic Search
+## Example
 
 ```typescript
-const results = await services.web.search({
-   query: "artificial intelligence trends 2024",
+const search = await services.web.search({
+   query: "Acme Corp funding",
+   advance_search: true,
 });
 
-console.log(`Found ${results.results.length} results`);
-
-results.results.forEach((result, index) => {
-   console.log(`\n${index + 1}. ${result.title}`);
-   console.log(`   ${result.displayed_link}`);
-   console.log(`   ${result.snippet}`);
-});
+return search.results[0]?.link;
 ```
 
-### Domain-Specific Search
-
 ```typescript
-// Find specific pages within a website
-const results = await services.web.search({
-   query: "API documentation",
+// Search within a specific domain
+const search = await services.web.search({
+   query: "pricing",
    domain: "stripe.com",
 });
 
-// Get the most relevant result
-const topResult = results.results[0];
-console.log(`Best match: ${topResult.link}`);
-```
-
-### Knowledge Graph Extraction
-
-```typescript
-const results = await services.web.search({
-   query: "OpenAI",
-});
-
-if (results.knowledgeGraph) {
-   const kg = results.knowledgeGraph;
-
-   console.log(`Company: ${kg.title}`);
-   console.log(`Description: ${kg.description}`);
-   console.log(`Website: ${kg.website}`);
-   console.log(`Image: ${kg.image}`);
-
-   // For businesses with hours
-   if (kg.hours_links?.length > 0) {
-      console.log("\nBusiness Hours:");
-      kg.hours_links.forEach((link) => {
-         console.log(`${link.text}: ${link.link}`);
-      });
-   }
-}
-```
-
-## Use Cases
-
-### Find Specific Pages
-
-```typescript
-async function findPage(domain: string, pageType: string) {
-   const results = await services.web.search({
-      query: pageType,
-      domain,
-   });
-
-   // Return the most relevant result
-   return results.results[0]?.link;
-}
-
-// Find pricing page
-const pricingUrl = await findPage("notion.so", "pricing");
-console.log(`Pricing page: ${pricingUrl}`);
-
-// Find documentation
-const docsUrl = await findPage("stripe.com", "documentation");
-console.log(`Docs: ${docsUrl}`);
-```
-
-### Company Research
-
-```typescript
-async function researchCompany(companyName: string) {
-   const results = await services.web.search({
-      query: companyName,
-   });
-
-   const info = {
-      searchResults: results.results.slice(0, 5),
-      knowledgeGraph: results.knowledgeGraph,
-   };
-
-   if (info.knowledgeGraph) {
-      console.log(`\n${info.knowledgeGraph.title}`);
-      console.log(info.knowledgeGraph.description);
-      console.log(`Website: ${info.knowledgeGraph.website}`);
-   }
-
-   console.log("\nTop Results:");
-   info.searchResults.forEach((result, i) => {
-      console.log(`${i + 1}. ${result.title}`);
-      console.log(`   ${result.link}`);
-   });
-
-   return info;
-}
-
-await researchCompany("Anthropic");
-```
-
-### Find Contact Pages
-
-```typescript
-async function findContactPage(domain: string) {
-   const queries = ["contact", "contact us", "get in touch"];
-
-   for (const query of queries) {
-      const results = await services.web.search({
-         query,
-         domain,
-      });
-
-      if (results.results.length > 0) {
-         return results.results[0].link;
-      }
-   }
-
-   return null;
-}
-
-const contactUrl = await findContactPage("acme.com");
-console.log(`Contact page: ${contactUrl}`);
-```
-
-### Competitive Analysis
-
-```typescript
-async function findCompetitors(companyName: string) {
-   const results = await services.web.search({
-      query: `${companyName} competitors alternatives`,
-   });
-
-   // Extract competitor mentions from snippets
-   const competitors = new Set<string>();
-
-   results.results.forEach((result) => {
-      const snippet = result.snippet.toLowerCase();
-      // Simple extraction - could be enhanced with NLP
-      const words = snippet.split(/\s+/);
-      // Look for capitalized words (potential company names)
-      words.forEach((word) => {
-         if (word.length > 3 && word[0] === word[0].toUpperCase()) {
-            competitors.add(word);
-         }
-      });
-   });
-
-   return {
-      query: companyName,
-      potentialCompetitors: Array.from(competitors),
-      sources: results.results.map((r) => r.link),
-   };
-}
-```
-
-### Find Recent News
-
-```typescript
-async function findRecentNews(topic: string) {
-   const results = await services.web.search({
-      query: `${topic} news`,
-      advance_search: true,
-   });
-
-   // Filter for news sites
-   const newsSites = ["techcrunch.com", "theverge.com", "reuters.com", "bloomberg.com", "wsj.com"];
-
-   const newsResults = results.results.filter((result) => {
-      return newsSites.some((site) => result.link.includes(site));
-   });
-
-   return newsResults.map((result) => ({
-      title: result.title,
-      url: result.link,
-      snippet: result.snippet,
-   }));
-}
-
-const news = await findRecentNews("artificial intelligence");
-news.forEach((article) => {
-   console.log(`\n${article.title}`);
-   console.log(article.url);
-   console.log(article.snippet);
-});
-```
-
-### Find Social Media Profiles
-
-```typescript
-async function findSocialProfiles(companyName: string) {
-   const platforms = ["linkedin", "twitter", "facebook", "instagram"];
-   const profiles: Record<string, string | undefined> = {};
-
-   for (const platform of platforms) {
-      const results = await services.web.search({
-         query: `${companyName}`,
-         domain: `${platform}.com`,
-      });
-
-      if (results.results.length > 0) {
-         profiles[platform] = results.results[0].link;
-      }
-   }
-
-   return profiles;
-}
-
-const profiles = await findSocialProfiles("Stripe");
-console.log(profiles);
-// {
-//   linkedin: "https://linkedin.com/company/stripe",
-//   twitter: "https://twitter.com/stripe",
-//   ...
-// }
-```
-
-## Best Practices
-
-<Warning>
-   **Never use the `site:` operator**: Instead of `query: "site:example.com pricing"`, use `query: "pricing", domain:
-   "example.com"`
-</Warning>
-
-<Tip>
-   **Knowledge Graph**: The knowledge graph is only available for well-known entities (companies, people, places). Check
-   if it exists before accessing its properties.
-</Tip>
-
-<Info>
-   **Result Limits**: Search results are limited to prevent overwhelming responses. Results are ranked by relevance, so
-   the most useful information is typically in the first few results.
-</Info>
-
-## Advanced Patterns
-
-### Multi-Domain Search
-
-```typescript
-async function searchMultipleDomains(query: string, domains: string[]) {
-   const results = await Promise.all(domains.map((domain) => services.web.search({ query, domain })));
-
-   return domains.map((domain, i) => ({
-      domain,
-      results: results[i].results,
-   }));
-}
-
-const comparison = await searchMultipleDomains("pricing", ["stripe.com", "square.com", "paypal.com"]);
-```
-
-### Search Result Validation
-
-```typescript
-async function findAndValidate(query: string, domain: string) {
-   const results = await services.web.search({ query, domain });
-
-   if (results.results.length === 0) {
-      return { found: false, url: null };
-   }
-
-   const topResult = results.results[0];
-
-   // Validate the result is actually from the domain
-   const isValid = topResult.link.includes(domain);
-
-   return {
-      found: true,
-      url: topResult.link,
-      title: topResult.title,
-      valid: isValid,
-   };
-}
-```
-
-## Error Handling
-
-```typescript
-async function searchSafely(query: string) {
-   try {
-      const results = await services.web.search({ query });
-
-      if (!results.results || results.results.length === 0) {
-         console.log("No results found");
-         return null;
-      }
-
-      return results;
-   } catch (error) {
-      console.error("Search failed:", error);
-      return null;
-   }
-}
+return search.results;
 ```

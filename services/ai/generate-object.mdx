@@ -1,118 +1,50 @@
 ---
 title: "Generate Object"
-description: "Generate structured JSON objects from natural language prompts"
+description: "Generate structured JSON from natural language"
 icon: "brackets-curly"
 ---
 
-## Generate Structured Object
+<Info><Icon icon="coins" /> **1 credit** per call</Info>
 
-Extract or generate structured data from natural language using AI. Perfect for parsing unstructured text, form filling, data extraction, and more.
-
-<Tip>
-   **Best for Extracting Sales Intelligence**: Combine with `services.scrape.website()` to extract structured
-   information from prospect websites. Perfect for questions like "What products does this company sell?" or "How many
-   decision-makers are listed on their about page?"
-</Tip>
-
-### Method
+## Method
 
 ```typescript
-services.ai.generateObject(params);
+services.ai.generateObject(params)
 ```
 
-### Parameters
+<Note>Does NOT have internet access. Use for extraction/parsing, not research.</Note>
+
+## Input
 
 <ParamField path="prompt" type="string" required>
-   The prompt describing what object to generate or what data to extract
+   Prompt describing what to generate or extract
 </ParamField>
 
-<ParamField path="schema" type="any" required>
-   The schema defining the structure of the output. Accepts a Zod schema instance or a plain JSON Schema object
+<ParamField path="schema" type="ZodSchema" required>
+   Zod schema defining output structure (must be `z.object` at top level)
 </ParamField>
 
-<ParamField path="model" type="string" optional default="gpt-5-mini">
-   The AI model to use. Options: - `"gpt-5-mini"` - Fast and cost-effective (default) - `"gemini-2.0-flash"` - Google's
-   fast model - `"gemini-2.5-pro"` - Google's most capable model - `"claude-sonnet-4-5-20250929"` - Anthropic's latest
-   model
+<ParamField path="model" type="string" default="gpt-5-mini">
+   Model: `"gpt-5-mini"`, `"gemini-2.0-flash"`, `"gemini-2.5-pro"`, or `"claude-sonnet-4-5-20250929"`
 </ParamField>
 
-### Returns
+## Output
 
-Returns a `Promise` with:
-
-<ResponseField name="object" type="object" required>
-   The generated JSON object matching the provided schema
+<ResponseField name="object" type="object">
+   Generated JSON matching the provided schema
 </ResponseField>
 
-## Examples
-
-### Extract Lead Information from Email Signature
+## Example
 
 ```typescript
-// Extract structured lead data from an email signature or bio
-const emailSignature = ctx.thisRow.get("Email Signature");
-
 const result = await services.ai.generateObject({
-   prompt: `Extract contact info from this email signature: ${emailSignature}`,
+   prompt: `Extract company info: ${ctx.thisRow.get("Description")}`,
    schema: z.object({
-      name: z.string(),
-      email: z.string(),
-      phone: z.string().optional(),
-      company: z.string(),
-      title: z.string(),
-      linkedin: z.string().optional(),
-   }),
+      industry: z.string(),
+      products: z.array(z.string()),
+      target_market: z.enum(["B2B", "B2C", "Both"])
+   })
 });
 
-return result.object;
-```
-
-### Extract Company's Product Offerings
-
-```typescript
-// Scrape and extract what products/services a prospect company offers
-const website = ctx.thisRow.get("Website");
-const scraped = await services.scrape.website({ url: website });
-
-const result = await services.ai.generateObject({
-   prompt: `Extract the company's product/service offerings from this website: ${scraped.markdown}`,
-   schema: z.object({
-      primary_products: z.array(z.string()),
-      target_market: z.string(),
-      pricing_model: z.string().optional(),
-      key_features: z.array(z.string()),
-      use_cases: z.array(z.string()).optional(),
-   }),
-});
-
-return result.object.primary_products.join(", ");
-```
-
-### Extract Company Intelligence from About Page
-
-<Info>
-   **Recommended Pattern**: This is the preferred approach for enriching prospect data from their website. It's more
-   accurate and cost-effective than using web search for targeted data extraction.
-</Info>
-
-```typescript
-// Scrape prospect's about page for company intelligence
-const website = ctx.thisRow.get("Website");
-const scraped = await services.scrape.website({
-   url: `${website}/about`,
-});
-
-// Extract structured company data for sales context
-const result = await services.ai.generateObject({
-   prompt: `Extract company information from this about page: ${scraped.markdown}`,
-   schema: z.object({
-      company_name: z.string(),
-      founded_year: z.number().optional(),
-      headquarters: z.string().optional(),
-      employee_count_estimate: z.string().optional(),
-      description: z.string(),
-   }),
-});
-
-return result.object;
+return result.object.industry;
 ```

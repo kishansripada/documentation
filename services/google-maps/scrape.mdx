@@ -1,0 +1,197 @@
+---
+title: "Scrape Google Maps"
+description: "Search and scrape Google Maps places data with location-based filtering"
+icon: "map-location-dot"
+---
+
+<Info><Icon icon="coins" /> **1 credit** per place returned</Info>
+
+## Method
+
+```typescript
+services.googleMaps.scrape(params)
+```
+
+## Input
+
+### Search Parameters
+
+<ParamField path="searchStringsArray" type="string[]" required>
+   Array of search terms to find places. Each term runs as a separate search.
+   
+   **Examples:** `["grocery store", "pizza restaurant", "dentist"]`
+</ParamField>
+
+### Location Parameters
+
+Specify the search location using either city/state/country OR lat/lng coordinates.
+
+<ParamField path="city" type="string" optional>
+   City name to search in (e.g., `"Austin"`, `"San Francisco"`)
+</ParamField>
+
+<ParamField path="state" type="string" optional>
+   State or province to search in (e.g., `"Texas"`, `"California"`)
+</ParamField>
+
+<ParamField path="countryCode" type="string" optional>
+   Two-letter country code (e.g., `"us"`, `"uk"`, `"ca"`, `"de"`)
+</ParamField>
+
+<ParamField path="lat" type="string" optional>
+   Latitude coordinate for geolocation search. **Overrides city/state/country when provided.**
+</ParamField>
+
+<ParamField path="lng" type="string" optional>
+   Longitude coordinate for geolocation search. **Overrides city/state/country when provided.**
+</ParamField>
+
+<ParamField path="zoom" type="number" optional>
+   Zoom level affecting search radius (1-21). Higher values = smaller search area.
+   - `1-5`: Country/continent level
+   - `10-12`: City level
+   - `15-17`: Neighborhood level
+   - `18-21`: Street level
+</ParamField>
+
+### Limits
+
+<ParamField path="maxCrawledPlacesPerSearch" type="number" default={100}>
+   Maximum number of places to return per search term
+</ParamField>
+
+### Filters
+
+<ParamField path="minStarRating" type="number" optional>
+   Minimum star rating filter (1-5). Only places with this rating or higher will be returned.
+</ParamField>
+
+<ParamField path="website" type="string" default="allPlaces">
+   Filter places by website presence:
+   - `"withWebsite"` - Only places that have a website
+   - `"withoutWebsite"` - Only places without a website
+   - `"allPlaces"` - No filtering by website
+</ParamField>
+
+<ParamField path="skipClosedPlaces" type="boolean" default={false}>
+   Skip places that are permanently or temporarily closed
+</ParamField>
+
+### Language
+
+<ParamField path="language" type="string" default="en">
+   Language code for results (e.g., `"en"`, `"es"`, `"fr"`, `"de"`)
+</ParamField>
+
+### Pagination
+
+<ParamField path="datasetListParams" type="object" optional>
+   Pagination options for result set
+</ParamField>
+
+<ParamField path="datasetListParams.limit" type="number" optional>
+   Maximum number of results to return
+</ParamField>
+
+<ParamField path="datasetListParams.offset" type="number" optional>
+   Number of results to skip (for pagination)
+</ParamField>
+
+## Output
+
+Returns an array of places with the following fields:
+
+<ResponseField name="title" type="string">
+   Place name
+</ResponseField>
+
+<ResponseField name="placeId" type="string">
+   Google Maps place ID
+</ResponseField>
+
+<ResponseField name="url" type="string">
+   Google Maps URL
+</ResponseField>
+
+<ResponseField name="address" type="string">
+   Full address
+</ResponseField>
+
+<ResponseField name="city" type="string">
+   City
+</ResponseField>
+
+<ResponseField name="state" type="string">
+   State/province
+</ResponseField>
+
+<ResponseField name="phone" type="string">
+   Phone number
+</ResponseField>
+
+<ResponseField name="website" type="string">
+   Website URL
+</ResponseField>
+
+<ResponseField name="rating" type="number">
+   Star rating (1-5)
+</ResponseField>
+
+<ResponseField name="reviewsCount" type="number">
+   Total reviews
+</ResponseField>
+
+<ResponseField name="categoryName" type="string">
+   Primary category
+</ResponseField>
+
+<ResponseField name="openingHours" type="array">
+   Hours by day
+</ResponseField>
+
+## Examples
+
+### Basic Search
+
+```typescript
+const places = await services.googleMaps.scrape({
+   searchStringsArray: ["coffee shops"],
+   city: "Austin",
+   state: "Texas",
+   countryCode: "us",
+   maxCrawledPlacesPerSearch: 20
+});
+
+return places.map(p => ({ name: p.title, rating: p.rating, website: p.website }));
+```
+
+### High-Rated Places with Websites
+
+```typescript
+const places = await services.googleMaps.scrape({
+   searchStringsArray: ["italian restaurant", "sushi restaurant"],
+   city: "New York",
+   state: "New York",
+   countryCode: "us",
+   minStarRating: 4,
+   website: "withWebsite",
+   skipClosedPlaces: true,
+   maxCrawledPlacesPerSearch: 50
+});
+
+return places;
+```
+
+### Coordinate-Based Search
+
+```typescript
+const places = await services.googleMaps.scrape({
+   searchStringsArray: ["gym", "fitness center"],
+   lat: "30.2672",
+   lng: "-97.7431",
+   zoom: 14,
+   maxCrawledPlacesPerSearch: 30
+});
+
+return places;
+```

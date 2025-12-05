@@ -1,77 +1,65 @@
 ---
 title: "Parse Address"
-description: "Parse addresses into structured components with geocoding"
-icon: "map-location-dot"
+description: "Parse an address into structured components with geocoding"
+icon: "location-dot"
 ---
 
-## Parse Address
+<Info>
+   <Icon icon="coins" /> **1 credit** per call
+</Info>
 
-Parse a full address string into structured components and obtain geographic coordinates (latitude/longitude).
-
-### Method
+## Method
 
 ```typescript
 services.geo.parseAddress(params);
 ```
 
-### Parameters
+## Input
 
 <ParamField path="address" type="string" required>
-   The full address string to parse
+   The address string to parse
 </ParamField>
 
-### Returns
+## Output
 
-Returns a `Promise` with:
-
-<ResponseField name="streetNumber" type="string" required>
-   The street number
+<ResponseField name="streetNumber" type="string">
+   Street number
 </ResponseField>
 
-<ResponseField name="route" type="string" required>
-   The street name/route
+<ResponseField name="route" type="string">
+   Street name
 </ResponseField>
 
-<ResponseField name="city" type="string" required>
-   The city name
+<ResponseField name="city" type="string">
+   City
 </ResponseField>
 
-<ResponseField name="state" type="string" required>
-   The state or province
+<ResponseField name="state" type="string">
+   State/province
 </ResponseField>
 
-<ResponseField name="postalCode" type="string" required>
-   The postal/ZIP code
+<ResponseField name="postalCode" type="string">
+   Postal/ZIP code
 </ResponseField>
 
-<ResponseField name="country" type="string" required>
-   The country name
+<ResponseField name="country" type="string">
+   Country
 </ResponseField>
 
-<ResponseField name="lat" type="number" required>
-   Latitude coordinate
+<ResponseField name="lat" type="number">
+   Latitude
 </ResponseField>
 
-<ResponseField name="lng" type="number" required>
-   Longitude coordinate
+<ResponseField name="lng" type="number">
+   Longitude
 </ResponseField>
 
 ## Example
 
 ```typescript
-const result = await services.geo.parseAddress({
-   address: "1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+const parsed = await services.geo.parseAddress({
+   address: "1600 Amphitheatre Parkway, Mountain View, CA",
 });
 
-console.log(result);
-// {
-//   streetNumber: "1600",
-//   route: "Amphitheatre Parkway",
-//   city: "Mountain View",
-//   state: "CA",
-//   postalCode: "94043",
-//   country: "USA",
-//   lat: 37.4224764,
-//   lng: -122.0842499
-// }
+return `${parsed.city}, ${parsed.state}`;
 ```

@@ -1,0 +1,213 @@
+---
+title: "FilterSpec Reference"
+description: "Complete guide to building employee filters"
+icon: "filter"
+---
+
+FilterSpec is the query language for filtering employees. It provides a simple, declarative way to build complex searches without writing raw Elasticsearch queries.
+
+## Structure
+
+```typescript
+{
+  textAny?: [],    // Match ANY of these text terms (OR)
+  textAll?: [],    // Match ALL of these text terms (AND)
+  range?: [],      // Numeric range filters
+  termsAny?: [],   // Exact match ANY of these values (OR)
+  termsAll?: [],   // Exact match ALL of these values (AND)
+  exists?: [],     // Field must exist
+  notExists?: []   // Field must NOT exist
+}
+```
+
+---
+
+## Filter Types
+
+### textAny / textAll
+
+For **fuzzy/partial matching** on free-text fields like job titles, headlines, descriptions.
+
+```typescript
+// Match people with "engineer" OR "developer" in job_title
+textAny: [{ field: "job_title", terms: ["engineer", "developer"] }];
+
+// Match people with BOTH "senior" AND "engineer" in job_title
+textAll: [{ field: "job_title", terms: ["senior", "engineer"] }];
+```
+
+**Best for:** `job_title`, `headline`, `description`, `skills`, `experience.title`, `experience.description`
+
+### termsAny / termsAll
+
+For **exact matching** on discrete/enum fields. Required for all enum-backed fields.
+
+```typescript
+// Match people in Engineering OR Sales departments
+termsAny: [{ field: "department", values: ["Engineering and Technical", "Sales"] }];
+
+// Match by company ID
+termsAny: [{ field: "experience.company_id", values: [12345] }];
+```
+
+**Best for:** `department`, `management_level`, `location_regions`, `experience.company_id`, `experience.company_industry`
+
+### range
+
+For **numeric comparisons** with `gte` (≥) and `lte` (≤).
+
+```typescript
+// 50-500 employees at current company
+range: [{ field: "experience.company_size_employees_count", gte: 50, lte: 500 }];
+
+// At least 100 connections (capped at 500)
+range: [{ field: "connections_count", gte: 100 }];
+```
+
+<Note>`connections_count` is capped at 500 in the data source.</Note>
+
+### exists / notExists
+
+For checking field presence.
+
+```typescript
+// Must have a profile picture
+exists: [{ field: "picture_url" }];
+
+// Currently employed (no end date on current role)
+notExists: [{ field: "experience.date_to" }];
+```
+
+---
+
+## Enum Values Reference
+
+These fields require **exact values** from the lists below. Use `termsAny` or `termsAll`.
+
+### department
+
+```
+C-Suite, Finance & Accounting, Human Resources, Legal, Administrative,
+Engineering and Technical, Sales, Customer Service, Product, Project Management,
+Marketing, Design, Operations, Research, Trades, Consulting, Medical,
+Real Estate, Education, Other
+```
+
+### management_level
+
+```
+Specialist, Manager, Senior, Director, Owner, C-Level, Intern, Head,
+President/Vice President, Founder, Partner
+```
+
+### location_regions
+
+Hierarchical regions (use the most specific that applies):
+
+| Level          | Examples                                                                   |
+| -------------- | -------------------------------------------------------------------------- |
+| Macro          | `AMER`, `EMEA`, `APAC`                                                     |
+| Continent      | `Northern America`, `Europe`, `Asia`, `Africa`, `Oceania`                  |
+| Sub-region     | `Northern Europe`, `Western Europe`, `South-Eastern Asia`, `Southern Asia` |
+| Country        | `United States`, `United Kingdom`, `Germany`, `India`, `Australia`         |
+| State/Province | `California, United States`, `Texas, United States`, `Ontario, Canada`     |
+
+### company_size_range
+
+```
+1 employee, 2-10 employees, 11-50 employees, 51-200 employees,
+201-500 employees, 501-1,000 employees, 1,001-5,000 employees,
+5,001-10,000 employees, 10,001+ employees
+```
+
+### company_industry
+
+Common values (200+ total):
+
+```
+Computer Software, Information Technology and Services, Financial Services,
+Internet, Marketing and Advertising, Hospital & Health Care, Banking,
+Management Consulting, Biotechnology, Telecommunications, E-Learning,
+Real Estate, Insurance, Retail, Automotive, Pharmaceuticals, ...
+```
+
+---
+
+## Common Fields
+
+### Profile Fields (top-level)
+
+| Field               | Type  | Description                    |
+| ------------------- | ----- | ------------------------------ |
+| `job_title`         | text  | Current job title              |
+| `headline`          | text  | LinkedIn headline              |
+| `description`       | text  | About/summary section          |
+| `skills`            | text  | Skills array                   |
+| `department`        | enum  | Function area                  |
+| `management_level`  | enum  | Seniority level                |
+| `location_regions`  | enum  | Geographic location            |
+| `connections_count` | range | LinkedIn connections (max 500) |
+| `follower_count`    | range | LinkedIn followers             |
+
+### Experience Fields (nested under `experience.`)
+
+| Field                                     | Type   | Description                     |
+| ----------------------------------------- | ------ | ------------------------------- |
+| `experience.title`                        | text   | Job title at company            |
+| `experience.description`                  | text   | Role description                |
+| `experience.company_id`                   | terms  | CoreSignal company ID           |
+| `experience.company_name`                 | text   | Company name                    |
+| `experience.company_industry`             | enum   | Company's industry              |
+| `experience.company_size_employees_count` | range  | Employee count                  |
+| `experience.company_size_range`           | enum   | Size bucket                     |
+| `experience.department`                   | enum   | Department in that role         |
+| `experience.management_level`             | enum   | Level in that role              |
+| `experience.date_from`                    | exists | Role start date                 |
+| `experience.date_to`                      | exists | Role end date (null if current) |
+
+---
+
+## Examples
+
+### VP+ in Engineering at mid-size companies in California
+
+```typescript
+{
+  termsAny: [
+    { field: "department", values: ["Engineering and Technical"] },
+    { field: "management_level", values: ["President/Vice President", "C-Level", "Director"] },
+    { field: "location_regions", values: ["California, United States"] }
+  ],
+  range: [
+    { field: "experience.company_size_employees_count", gte: 50, lte: 1000 }
+  ]
+}
+```
+
+### Sales leaders at SaaS companies
+
+```typescript
+{
+  textAny: [{ field: "experience.company_industry", terms: ["SaaS", "Software"] }],
+  termsAny: [
+    { field: "department", values: ["Sales"] },
+    { field: "management_level", values: ["Director", "Head", "President/Vice President"] }
+  ]
+}
+```
+
+### Currently employed (no end date)
+
+```typescript
+{
+   notExists: [{ field: "experience.date_to" }];
+}
+```
+
+### People with specific skills
+
+```typescript
+{
+   textAll: [{ field: "skills", terms: ["Python", "Machine Learning"] }];
+}
+```
