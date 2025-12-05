@@ -5,15 +5,16 @@ icon: "address-book"
 ---
 
 <Info>
-<Icon icon="coins" /> **5 credits** for email | **100 credits** for phone | **105 credits** for both
+<Icon icon="coins" /> **25 credits** for email | **250 credits** for phone | **275 credits** for both
 
 Only charged if the requested data is found and returned.
+
 </Info>
 
 ## Method
 
 ```typescript
-services.person.contact.get(params)
+services.person.contact.get(params);
 ```
 
 ## Input
@@ -59,7 +60,7 @@ services.person.contact.get(params)
 ```typescript
 const contact = await services.person.contact.get({
    linkedinUrl: ctx.thisRow.get("LinkedIn URL"),
-   required: ["email", "phone"]
+   required: ["email", "phone"],
 });
 
 return contact.emails[0]?.email;
@@ -72,9 +73,8 @@ const contact = await services.person.contact.get({
    lastName: "Smith",
    company: "Acme Corp",
    required: ["work_email"],
-   domain: "acme.com"
+   domain: "acme.com",
 });
 
-return contact.emails.find(e => e.type === "work")?.email;
+return contact.emails.find((e) => e.type === "work")?.email;
 ```
-

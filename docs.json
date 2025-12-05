@@ -33,6 +33,7 @@
             "group": "Services (Enrichments)",
             "pages": [
               "services/introduction",
+              "services/pricing",
               "services/filter-spec"
             ]
           },

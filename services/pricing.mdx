@@ -1,0 +1,69 @@
+---
+title: "Pricing"
+description: "Credit costs for all services"
+icon: "coins"
+---
+
+<Info>
+Credits power all enrichments, AI calls, and workflows. [View pricing plans →](https://www.orangeslice.ai/pricing)
+</Info>
+
+## Person Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Find LinkedIn URL | `services.person.linkedin.findUrl()` | 2 | |
+| Enrich LinkedIn Profile | `services.person.linkedin.enrich()` | 5 | |
+| Get Contact Info | `services.person.contact.get()` | 25-275 | 25 for email, 250 for phone, 275 for both. Only charged if found. |
+
+## Company Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Find LinkedIn URL | `services.company.linkedin.findUrl()` | 2 | |
+| Enrich Company | `services.company.linkedin.enrich()` | 5 | |
+| Get Employees | `services.company.getEmployees()` | 5 per employee | Requires `limit × 5` credits in balance |
+| Find Careers Page | `services.company.careers.findPage()` | 1 | |
+| Scrape Jobs | `services.company.careers.scrapeJobs()` | 1 | |
+
+## AI Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Generate Text | `services.ai.generateText()` | 1 | |
+| Generate Object | `services.ai.generateObject()` | 1 | No internet access |
+| Generate Research | `services.ai.generateResearch()` | 1-2 | 1 credit default, 2 credits with GPT-5 |
+
+## Web Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Web Search | `services.web.search()` | 1 | |
+
+## Scraping Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Scrape Website | `services.scrape.website()` | 1 | |
+| Sitemap Search | `services.scrape.sitemap()` | 1 | |
+| Scrape List | `services.scrape.list()` | 1 | AI-powered, can take minutes |
+| Scrape LinkedIn Post | `services.scrape.linkedinPost()` | 1 | |
+
+## Geo Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Parse Address | `services.geo.parseAddress()` | 1 | Includes geocoding |
+
+## Google Maps Services
+
+| Service | Method | Credits | Notes |
+|---------|--------|---------|-------|
+| Scrape Google Maps | `services.googleMaps.scrape()` | 1 per place | Charged per place returned |
+
+---
+
+<Card title="Buy Credits" icon="cart-shopping" href="https://www.orangeslice.ai/pricing">
+  View pricing plans and purchase credits. Credits never expire.
+</Card>
+
