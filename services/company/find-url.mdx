@@ -4,17 +4,19 @@ description: "Search for a company's LinkedIn page URL"
 icon: "magnifying-glass"
 ---
 
-<Info><Icon icon="coins" /> **2 credits** per call</Info>
+<Info>
+   <Icon icon="coins" /> **2 credits** per call
+</Info>
 
 ## Method
 
 ```typescript
-services.company.linkedin.findUrl(params)
+services.company.linkedin.findUrl(params);
 ```
 
 ## Input
 
-<ParamField path="name" type="string" optional>
+<ParamField path="companyName" type="string" optional>
    Company name
 </ParamField>
 
@@ -34,10 +36,9 @@ Returns `string | null` - the LinkedIn company page URL if found.
 
 ```typescript
 const linkedinUrl = await services.company.linkedin.findUrl({
-   name: ctx.thisRow.get("Company Name"),
+   companyName: ctx.thisRow.get("Company Name"),
    website: ctx.thisRow.get("Website"),
 });
 
 return linkedinUrl;
 ```
-
