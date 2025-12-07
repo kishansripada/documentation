@@ -1,0 +1,506 @@
+---
+title: "Get Employees from LinkedIn"
+description: "Get employees from a specific company's LinkedIn profile using Coresignal data with powerful filtering capabilities"
+icon: "linkedin"
+---
+
+<Info>
+  <Icon icon="coins" /> **5 credits** per employee returned
+</Info>
+
+<Warning>
+  You must have `limit × 5` credits in your balance to run this function.
+  Default limit is 100 (requires 500 credits). If you set limit to 200, you need
+  1,000 credits available.
+</Warning>
+
+## When to Use
+
+Use this endpoint to retrieve employees for **ONE specific company** from LinkedIn/Coresignal data. The company constraint is automatically applied based on the identifier you provide.
+
+**This endpoint is for:**
+
+- Getting LinkedIn-enriched employee profiles from a company
+- Filtering employees by department, seniority, location, skills, etc.
+- Finding current employees vs. all employees (past and present)
+
+**NOT for:**
+
+- Scraping employee info from a company website (use [`getEmployeesFromWebsite`](/services/company/get-employees-website) instead)
+
+## Method
+
+```typescript
+services.company.getEmployeesFromLinkedin(params);
+```
+
+## Input
+
+### Company Identifiers (at least one required)
+
+| Parameter            | Type     | Description                                                                  |
+| -------------------- | -------- | ---------------------------------------------------------------------------- |
+| `given_company_id`   | `number` | CoreSignal company ID (most efficient).                                      |
+| `linkedinCompanyUrl` | `string` | LinkedIn company URL (e.g., `"https://www.linkedin.com/company/acme-corp"`). |
+
+### Optional Parameters
+
+| Parameter       | Type                      | Description                                                                                       |
+| --------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `filters`       | `CleanEmployeeFilterSpec` | Powerful filtering (see FilterSpec API below).                                                    |
+| `options.limit` | `number`                  | Max employees to return (default: 100, max: 500). **Always start with `limit=1` for new queries** |
+| `options.after` | `string`                  | Pagination cursor from previous response                                                          |
+
+## The FilterSpec API
+
+FilterSpec provides a simple, declarative way to filter employees. The system automatically handles nested Elasticsearch paths.
+
+### Filter Types
+
+| Filter Type | Description                                 | Use For                                                      |
+| ----------- | ------------------------------------------- | ------------------------------------------------------------ |
+| `textAny`   | Match ANY of the text terms (fuzzy/partial) | Free-text fields like headlines, descriptions, skills        |
+| `textAll`   | Match ALL text terms (fuzzy/partial)        | When all keywords must appear                                |
+| `termsAny`  | Exact match ANY value                       | Enum fields (department, management_level, location_country) |
+| `termsAll`  | Exact match ALL values                      | Multi-value requirements                                     |
+| `range`     | Numeric bounds (gte/lte)                    | connections_count, experience duration                       |
+| `exists`    | Field must be present                       | Ensure data quality                                          |
+| `notExists` | Field must be missing/null                  | **Current employees** (experience.date_to missing)           |
+
+### Critical: Filtering for Current Employees
+
+The most common use case is filtering for **current employees only**. In Coresignal data, an employee is current if their `experience.date_to` field is **null/missing** (no end date).
+
+```typescript
+// ✅ CORRECT: Current employees only
+const currentEmployees = await services.company.getEmployeesFromLinkedin({
+  linkedinCompanyUrl: "https://www.linkedin.com/company/acme-corp",
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+  },
+  options: { limit: 50 },
+});
+```
+
+<Warning>Without this filter, results may include former employees.</Warning>
+
+---
+
+## Location Filtering
+
+### ⚠️ Important: Use `location_country`, NOT `location_regions`
+
+The `location_regions` field is **unreliable** and should NOT be used. Instead:
+
+1. **For US employees (most common):** Use `location_country` with exact value `"United States"`
+2. **For specific cities/states:** Use `textAny` on `location_raw_address`
+
+```typescript
+// ✅ CORRECT: Filter for United States employees
+const usEmployees = await services.company.getEmployeesFromLinkedin({
+  given_company_id: 12345,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [{ field: "location_country", values: ["United States"] }],
+  },
+  options: { limit: 100 },
+});
+
+// ✅ CORRECT: Filter for specific location using address text
+const nyEmployees = await services.company.getEmployeesFromLinkedin({
+  given_company_id: 12345,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    textAny: [{ field: "location_raw_address", terms: ["New York"] }],
+  },
+  options: { limit: 100 },
+});
+
+// ❌ WRONG: Do NOT use location_regions - it is unreliable
+// termsAny: [{ field: "location_regions", values: ["Northern America"] }]
+```
+
+---
+
+## Recommended Pattern: Get LinkedIn URL First
+
+**When you only have a company website, ALWAYS create a separate column to get the LinkedIn company URL first, then use that URL for employee lookups.**
+
+### Multi-Column Pattern
+
+**Column A**: Company Website (input)  
+**Column B**: LinkedIn Company URL (resolve first)  
+**Column C**: Employees (use LinkedIn URL from Column B)
+
+```typescript
+// Column B: Get LinkedIn Company URL from website
+const linkedinUrl = await services.company.linkedin.findUrl({
+  website: row.companyWebsite,
+});
+
+return linkedinUrl;
+```
+
+```typescript
+// Column C: Get employees using the LinkedIn URL from Column B
+const employees = await services.company.getEmployeesFromLinkedin({
+  linkedinCompanyUrl: row.linkedinCompanyUrl, // from Column B
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [{ field: "department", values: ["Sales"] }],
+  },
+  options: { limit: 50 },
+});
+
+return employees;
+```
+
+### When Company ID is Available (Most Efficient)
+
+If you have the Coresignal company ID, use it for fastest lookups:
+
+```typescript
+const employees = await services.company.getEmployeesFromLinkedin({
+  given_company_id: row.coresignalCompanyId,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [{ field: "department", values: ["Engineering and Technical"] }],
+  },
+  options: { limit: 50 },
+});
+```
+
+---
+
+## FilterSpec Examples
+
+### Example 1: Current Employees Only
+
+```typescript
+const employees = await services.company.getEmployeesFromLinkedin({
+  linkedinCompanyUrl: row.linkedinCompanyUrl,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+  },
+  options: { limit: 100 },
+});
+```
+
+### Example 2: Current Employees in Engineering
+
+```typescript
+const engineers = await services.company.getEmployeesFromLinkedin({
+  linkedinCompanyUrl: row.linkedinCompanyUrl,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [{ field: "department", values: ["Engineering and Technical"] }],
+  },
+  options: { limit: 50 },
+});
+```
+
+### Example 3: Current Senior Leadership
+
+```typescript
+const leadership = await services.company.getEmployeesFromLinkedin({
+  given_company_id: row.coresignalCompanyId,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [
+      {
+        field: "management_level",
+        values: [
+          "C-Level",
+          "Founder",
+          "President/Vice President",
+          "Director",
+          "Head",
+        ],
+      },
+    ],
+  },
+  options: { limit: 50 },
+});
+```
+
+### Example 4: Current Sales Team in the United States
+
+```typescript
+const salesTeam = await services.company.getEmployeesFromLinkedin({
+  linkedinCompanyUrl: row.linkedinCompanyUrl,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [
+      { field: "department", values: ["Sales"] },
+      { field: "location_country", values: ["United States"] },
+    ],
+  },
+  options: { limit: 100 },
+});
+```
+
+### Example 5: Employees with Specific Skills
+
+The `skills` field is a text array — use `textAny` for partial matching:
+
+```typescript
+const pythonDevs = await services.company.getEmployeesFromLinkedin({
+  given_company_id: row.coresignalCompanyId,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    textAny: [{ field: "skills", terms: ["python", "django", "flask"] }],
+  },
+  options: { limit: 50 },
+});
+```
+
+### Example 6: Decision Makers with High Connections in US
+
+```typescript
+const decisionMakers = await services.company.getEmployeesFromLinkedin({
+  linkedinCompanyUrl: row.linkedinCompanyUrl,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [
+      { field: "is_decision_maker", values: [1] },
+      { field: "location_country", values: ["United States"] },
+    ],
+    range: [{ field: "connections_count", gte: 200 }],
+  },
+  options: { limit: 50 },
+});
+```
+
+<Note>
+  `connections_count` is capped at 500 in Coresignal. Values above 500 won't
+  filter correctly.
+</Note>
+
+### Example 7: C-Suite & Founders Only
+
+```typescript
+const executives = await services.company.getEmployeesFromLinkedin({
+  given_company_id: row.coresignalCompanyId,
+  filters: {
+    notExists: [{ field: "experience.date_to" }],
+    termsAny: [
+      { field: "management_level", values: ["C-Level", "Founder"] },
+      { field: "department", values: ["C-Suite"] },
+    ],
+  },
+  options: { limit: 20 },
+});
+```
+
+---
+
+## Valid Enum Values
+
+### Departments
+
+```
+C-Suite, Finance & Accounting, Human Resources, Legal, Administrative,
+Engineering and Technical, Sales, Customer Service, Product, Project Management,
+Marketing, Design, Operations, Research, Trades, Consulting, Medical,
+Real Estate, Education, Other
+```
+
+### Management Levels
+
+```
+C-Level, Founder, President/Vice President, Partner, Director, Head,
+Manager, Senior, Specialist, Intern, Owner
+```
+
+### Location Countries (common values for `location_country`)
+
+```
+United States, United Kingdom, Canada, Germany, France, Australia,
+India, Netherlands, Singapore, Ireland, Spain, Italy, Sweden, Brazil,
+Japan, China, South Korea, Israel, Switzerland, etc.
+```
+
+<Tip>
+  For US filtering, always use exact value `"United States"` (not "USA" or
+  "US").
+</Tip>
+
+---
+
+## Filterable Fields Reference
+
+### Top-Level Fields (keyword/exact match with `termsAny`)
+
+| Field               | Type      | Notes                                      |
+| ------------------- | --------- | ------------------------------------------ |
+| `department`        | `keyword` | Use enum values                            |
+| `management_level`  | `keyword` | Use enum values                            |
+| `location_country`  | `keyword` | Exact country name (e.g., "United States") |
+| `is_decision_maker` | `byte`    | 0 or 1                                     |
+| `is_working`        | `byte`    | 0 or 1                                     |
+
+### Top-Level Fields (text search with `textAny`/`textAll`)
+
+| Field                  | Type   | Notes                                    |
+| ---------------------- | ------ | ---------------------------------------- |
+| `headline`             | `text` | LinkedIn headline                        |
+| `generated_headline`   | `text` | AI-generated headline                    |
+| `job_title`            | `text` | Current job title                        |
+| `job_description`      | `text` | Job description                          |
+| `description`          | `text` | Profile summary/about                    |
+| `skills`               | `text` | Skills array (searchable as text)        |
+| `location_raw_address` | `text` | Full location string (city, state, etc.) |
+
+### Top-Level Fields (numeric range with `range`)
+
+| Field                              | Type   | Notes                           |
+| ---------------------------------- | ------ | ------------------------------- |
+| `connections_count`                | `int`  | Capped at 500                   |
+| `follower_count`                   | `long` | LinkedIn followers              |
+| `recommendations_count`            | `int`  | Number of recommendations       |
+| `total_experience_duration_months` | `long` | Total career duration in months |
+
+### Nested Experience Fields (use `experience.` prefix)
+
+| Field                         | Type      | Notes                       |
+| ----------------------------- | --------- | --------------------------- |
+| `experience.date_to`          | `date`    | Use `notExists` for current |
+| `experience.date_from`        | `date`    | Job start date              |
+| `experience.company_id`       | `long`    | Company CoreSignal ID       |
+| `experience.department`       | `text`    | Department at that job      |
+| `experience.management_level` | `text`    | Seniority at that job       |
+| `experience.title`            | `text`    | Job title at that role      |
+| `experience.description`      | `text`    | Role description            |
+| `experience.company_name`     | `text`    | Employer name               |
+| `experience.company_industry` | `text`    | Company's industry          |
+| `experience.company_type`     | `keyword` | Company type enum           |
+| `experience.duration_months`  | `long`    | Duration at that role       |
+
+---
+
+## Output Schema (CleanCoresignalEmployee)
+
+Each employee returned has the following structure. Here's a condensed real example:
+
+```json
+{
+  "id": 614123053,
+  "full_name": "Kishan Sripada",
+  "name_first": "Kishan",
+  "name_last": "Sripada",
+  "websites_linkedin": "https://www.linkedin.com/in/kishansripada",
+  "picture_url": "https://media.licdn.com/dms/image/...",
+  "headline": "Co-Founder at Orange Slice (YC S25)",
+  "generated_headline": "Co-Founder at Orange Slice (YC S25)",
+  "job_title": "Co-Founder, CTO",
+  "department": "C-Suite",
+  "management_level": "Founder",
+  "company_id": 98418001,
+  "is_decision_maker": 1,
+  "is_working": 1,
+  "location_country": "United States",
+  "location_city": "Birmingham",
+  "location_state": "Michigan",
+  "location_raw_address": "Birmingham, Michigan, United States",
+  "connections_count": 500,
+  "follower_count": 2068,
+  "skills": ["software", "engineering", "software engineering"],
+  "total_experience_duration_months": 38,
+  "experience": [
+    {
+      "title": "Co-Founder, CTO",
+      "date_from": "2025-06-01",
+      "date_to": null,
+      "company_id": 98418001,
+      "company_name": "Orange Slice",
+      "department": "C-Suite",
+      "management_level": "Founder",
+      "location": "San Francisco Bay Area",
+      "company_industry": "Technology, Information and Internet",
+      "company_type": "Privately Held",
+      "company_size_range": "1-10 employees",
+      "company_website": "https://www.orangeslice.ai"
+    }
+  ],
+  "education": [
+    {
+      "title": "University of Michigan",
+      "major": "Bachelor of Science in Information - BS, User Experience Design (UX)",
+      "date_from": 2021,
+      "date_to": 2025,
+      "institution_url": "https://www.linkedin.com/school/university-of-michigan"
+    }
+  ]
+}
+```
+
+### Core Identity
+
+| Field               | Type       | Description                                    |
+| ------------------- | ---------- | ---------------------------------------------- |
+| `id`                | `number`   | CoreSignal employee ID                         |
+| `full_name`         | `string`   | Full name                                      |
+| `name_first`        | `string`   | First name                                     |
+| `name_last`         | `string`   | Last name                                      |
+| `name_middle`       | `string`   | Middle name (often null)                       |
+| `websites_linkedin` | `string`   | LinkedIn profile URL                           |
+| `picture_url`       | `string`   | Profile picture URL                            |
+| `shorthand_names`   | `string[]` | LinkedIn URL slugs (e.g., `["kishansripada"]`) |
+
+### Current Position
+
+| Field                | Type     | Description                      |
+| -------------------- | -------- | -------------------------------- |
+| `headline`           | `string` | LinkedIn headline                |
+| `generated_headline` | `string` | AI-generated headline            |
+| `job_title`          | `string` | Current job title                |
+| `job_description`    | `string` | Current job description          |
+| `department`         | `string` | Current department (enum value)  |
+| `management_level`   | `string` | Seniority level (enum value)     |
+| `company_id`         | `number` | Current employer's CoreSignal ID |
+| `is_decision_maker`  | `0 \| 1` | Decision maker flag              |
+| `is_working`         | `0 \| 1` | Currently employed flag          |
+
+### Location
+
+| Field                    | Type     | Description                                                  |
+| ------------------------ | -------- | ------------------------------------------------------------ |
+| `location_country`       | `string` | Country (e.g., `"United States"`)                            |
+| `location_city`          | `string` | City (e.g., `"Birmingham"`)                                  |
+| `location_state`         | `string` | State/Province (e.g., `"Michigan"`)                          |
+| `location_raw_address`   | `string` | Full address (e.g., `"Birmingham, Michigan, United States"`) |
+| `location_country_iso_2` | `string` | ISO 2-letter code (e.g., `"US"`)                             |
+| `location_country_iso_3` | `string` | ISO 3-letter code (e.g., `"USA"`)                            |
+
+### Network & Skills
+
+| Field               | Type       | Description                                                 |
+| ------------------- | ---------- | ----------------------------------------------------------- |
+| `connections_count` | `number`   | LinkedIn connections (capped at 500)                        |
+| `follower_count`    | `number`   | LinkedIn followers                                          |
+| `skills`            | `string[]` | Skills as simple string array (e.g., `["python", "react"]`) |
+
+### Experience History
+
+| Field                              | Type               | Description                                 |
+| ---------------------------------- | ------------------ | ------------------------------------------- |
+| `experience`                       | `ExperienceItem[]` | Array of work history entries               |
+| `total_experience_duration`        | `string`           | Human-readable (e.g., `"3 years 2 months"`) |
+| `total_experience_duration_months` | `number`           | Total career duration in months             |
+
+---
+
+## Performance Tips
+
+1. **Use `given_company_id`** when available — it's the fastest identifier (skips resolution step)
+2. **Use `linkedinCompanyUrl`** if you have it — faster than resolving from website
+3. **Resolve LinkedIn URL first** when only website is available — use `services.company.linkedin.findUrl` in a separate column
+4. **Use `notExists: [{ field: "experience.date_to" }]`** to filter out former employees
+5. **Use `location_country`** for country filtering (not `location_regions`)
+6. **Combine filters** to reduce result set size
+
+## Error Handling
+
+- Returns empty array if no employees match filters
+- Invalid FilterSpec values throw validation errors
+- Throws `NonRetriableError` if LinkedIn URL or company ID doesn't exist in Coresignal
