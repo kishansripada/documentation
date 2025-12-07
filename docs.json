@@ -50,7 +50,8 @@
             "pages": [
               "services/company/find-url",
               "services/company/enrich",
-              "services/company/get-employees",
+              "services/company/get-employees-linkedin",
+              "services/company/get-employees-website",
               "services/company/find-careers",
               "services/company/scrape-jobs"
             ]

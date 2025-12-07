@@ -1,0 +1,106 @@
+---
+title: "Get Employees from Website"
+description: "Scrape employee information directly from a company's website"
+icon: "globe"
+---
+
+<Info>
+  <Icon icon="coins" /> **1 credit** per employee returned
+</Info>
+
+## When to Use
+
+Use this endpoint to scrape employee information directly from a company's **team page** or **about page** on their website.
+
+**This endpoint is for:**
+
+- Getting basic employee info from company websites
+- Companies that may not have LinkedIn presence
+- Supplementing LinkedIn data with website-sourced employees
+
+**NOT for:**
+
+- Getting enriched LinkedIn profiles with full work history (use [`getEmployeesFromLinkedin`](/services/company/get-employees-linkedin) instead)
+- Advanced filtering by department, skills, location, etc.
+
+## Method
+
+```typescript
+services.company.getEmployeesFromWebsite(params);
+```
+
+## Input
+
+<ParamField path="website" type="string" required>
+  Company website URL (e.g., `"https://acme.com"`)
+</ParamField>
+
+<ParamField path="options.limit" type="number" optional>
+  Max employees to return (default: 100)
+</ParamField>
+
+## Output
+
+Returns an array of employee objects with basic information scraped from the website:
+
+<ResponseField name="name_first" type="string">
+  First name
+</ResponseField>
+
+<ResponseField name="name_last" type="string">
+  Last name
+</ResponseField>
+
+<ResponseField name="full_name" type="string">
+  Full name
+</ResponseField>
+
+<ResponseField name="job_title" type="string">
+  Job title as listed on the website
+</ResponseField>
+
+## Example
+
+```typescript
+const employees = await services.company.getEmployeesFromWebsite({
+  website: "https://acme.com",
+  options: { limit: 50 },
+});
+
+return employees;
+```
+
+## Output Example
+
+```json
+[
+  {
+    "name_first": "Jane",
+    "name_last": "Smith",
+    "full_name": "Jane Smith",
+    "job_title": "CEO"
+  },
+  {
+    "name_first": "John",
+    "name_last": "Doe",
+    "full_name": "John Doe",
+    "job_title": "VP of Engineering"
+  }
+]
+```
+
+## Comparison with LinkedIn Employees
+
+| Feature                   | `getEmployeesFromWebsite`  | `getEmployeesFromLinkedin`               |
+| ------------------------- | -------------------------- | ---------------------------------------- |
+| **Data source**           | Company website            | LinkedIn/Coresignal                      |
+| **Fields returned**       | Basic (name, title)        | Full profile (experience, skills, etc.)  |
+| **Filtering**             | None                       | Advanced FilterSpec API                  |
+| **Best for**              | Quick scrape, no LinkedIn  | Enriched data, advanced filtering        |
+| **Current employee only** | Typically yes (team pages) | Requires `notExists` filter on `date_to` |
+
+<Tip>
+  For the most comprehensive employee data, use `getEmployeesFromLinkedin` with
+  the company's LinkedIn URL. Use `getEmployeesFromWebsite` when you need a
+  quick scrape or the company doesn't have a LinkedIn presence.
+</Tip>
