@@ -34,25 +34,40 @@ Add multiple rows at once.
 await sheet.addRows(arrayOfData);
 ```
 
+### getRows()
+
+Query rows from this sheet with filtering and sorting.
+
+```typescript
+const rows = await sheet.getRows(query, limit);
+```
+
+<Card title="Query Reference" icon="filter" href="/ctx/get-rows">
+  See the full getRows() documentation for filtering operators, sorting options,
+  and examples.
+</Card>
+
+---
+
 ## Example: Push Employees to Another Sheet
 
 ```typescript
 // Get employees for a company
 const employees = await services.company.getEmployees({
-   linkedinCompanyUrl: ctx.thisRow.get("LinkedIn URL"),
-   options: { limit: 50 },
+  linkedinCompanyUrl: ctx.thisRow.get("LinkedIn URL"),
+  options: { limit: 50 },
 });
 
 // Push each employee to the Employees sheet
 const employeesSheet = ctx.sheet("Employees");
 
 await employeesSheet.addRows(
-   employees.map((emp) => ({
-      company_id: ctx.rowId,
-      name: emp.full_name,
-      title: emp.job_title,
-      linkedin: emp.websites_linkedin,
-   }))
+  employees.map((emp) => ({
+    company_id: ctx.rowId,
+    name: emp.full_name,
+    title: emp.job_title,
+    linkedin: emp.websites_linkedin,
+  }))
 );
 
 return employees.length;
@@ -63,16 +78,16 @@ return employees.length;
 ```typescript
 // Scrape job listings
 const jobs = await services.company.careers.scrapeJobs({
-   url: ctx.thisRow.get("Careers URL"),
+  url: ctx.thisRow.get("Careers URL"),
 });
 
 // Push to Jobs sheet
 await ctx.sheet("Jobs").addRows(
-   jobs.map((job) => ({
-      company_id: ctx.rowId,
-      title: job.title,
-      location: job.location,
-   }))
+  jobs.map((job) => ({
+    company_id: ctx.rowId,
+    title: job.title,
+    location: job.location,
+  }))
 );
 
 return jobs.length;

@@ -1,0 +1,213 @@
+---
+title: "Querying Rows"
+description: "Filter and sort rows with getRows()"
+icon: "filter"
+---
+
+## Overview
+
+Use `sheet.getRows()` to query rows from any sheet with filtering and sorting.
+
+```typescript
+const sheet = ctx.sheet("Leads");
+const rows = await sheet.getRows(query, limit);
+```
+
+<ParamField path="query" type="GetRowsQuery" required>
+  Object with `where` (filters) and `orderBy` (sorting) arrays
+</ParamField>
+
+<ParamField path="limit" type="number">
+  Maximum rows to return
+</ParamField>
+
+---
+
+## Filtering with `where`
+
+The `where` array contains filter conditions. Use **cell filters** for column values or **row filters** for metadata.
+
+<Tabs>
+  <Tab title="Cell Filter">
+    Filter by column values:
+
+    ```typescript
+    {
+      kind: "cell",
+      col_id: "Status",      // Column name
+      type: "text",          // "text" | "number" | "timestamp" | "boolean"
+      op: "eq",              // Operator (see below)
+      value: "qualified"     // Value to match
+    }
+    ```
+
+    **Operators:**
+
+    | Operator | Description | Example Value |
+    | -------- | ----------- | ------------- |
+    | `eq` / `neq` | Equal / Not equal | `"active"` |
+    | `lt` / `lte` | Less than (or equal) | `100` |
+    | `gt` / `gte` | Greater than (or equal) | `50` |
+    | `between` | Range (use `value` + `value2`) | `10`, `20` |
+    | `in` | Match any in array | `["a", "b", "c"]` |
+    | `contains` | Text contains | `"corp"` |
+    | `starts_with` / `ends_with` | Text prefix/suffix | `"https://"` |
+    | `is_empty` / `is_not_empty` | Null check | — |
+
+  </Tab>
+  <Tab title="Row Filter">
+    Filter by row metadata:
+
+    ```typescript
+    {
+      kind: "row",
+      field: "last_run_status",  // "last_run_status" | "last_run_time"
+      op: "eq",
+      value: "failed"
+    }
+    ```
+
+    **Fields:**
+    - `last_run_status` — Status of the last column execution
+    - `last_run_time` — Timestamp of the last run
+
+    **`last_run_status` values:**
+
+    | Value | Description |
+    | ----- | ----------- |
+    | `running` | Currently executing |
+    | `success` | Completed successfully |
+    | `failed` | Execution failed |
+    | `cancelled` | Manually cancelled |
+    | `stopped` | Execution stopped |
+
+  </Tab>
+</Tabs>
+
+---
+
+## Sorting with `orderBy`
+
+The `orderBy` array specifies sort order. Multiple sorts are applied in sequence.
+
+<Tabs>
+  <Tab title="Cell Sort">
+    Sort by column values:
+
+    ```typescript
+    {
+      kind: "cell",
+      col_id: "Created At",  // Column name
+      type: "timestamp",     // "text" | "number" | "timestamp" | "boolean"
+      dir: "desc",           // "asc" (default) | "desc"
+      empty: "last"          // "first" | "last" — where to put nulls
+    }
+    ```
+
+  </Tab>
+  <Tab title="Row Sort">
+    Sort by row metadata:
+
+    ```typescript
+    {
+      kind: "row",
+      field: "last_run_time",
+      dir: "desc",
+      empty: "last"
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Examples
+
+<AccordionGroup>
+  <Accordion title="Filter by text column">
+    ```typescript
+    const sheet = ctx.sheet("Leads");
+
+    const qualifiedLeads = await sheet.getRows({
+      where: [{
+        kind: "cell",
+        col_id: "Status",
+        type: "text",
+        op: "eq",
+        value: "qualified",
+      }],
+    }, 100);
+    ```
+
+  </Accordion>
+
+  <Accordion title="Filter + sort by date">
+    ```typescript
+    const sheet = ctx.sheet("Contacts");
+
+    // Last 7 days, newest first
+    const recent = await sheet.getRows({
+      where: [{
+        kind: "cell",
+        col_id: "Created At",
+        type: "timestamp",
+        op: "gte",
+        value: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }],
+      orderBy: [{
+        kind: "cell",
+        col_id: "Created At",
+        type: "timestamp",
+        dir: "desc",
+      }],
+    }, 50);
+    ```
+
+  </Accordion>
+
+  <Accordion title="Filter by row run status">
+    ```typescript
+    const sheet = ctx.sheet("Companies");
+
+    // Find rows that failed
+    const failedRows = await sheet.getRows({
+      where: [{
+        kind: "row",
+        field: "last_run_status",
+        op: "eq",
+        value: "failed",
+      }],
+    });
+    ```
+
+  </Accordion>
+
+  <Accordion title="Multiple filters (AND logic)">
+    ```typescript
+    const sheet = ctx.sheet("Deals");
+
+    // Active deals over $10k
+    const bigDeals = await sheet.getRows({
+      where: [
+        {
+          kind: "cell",
+          col_id: "Status",
+          type: "text",
+          op: "eq",
+          value: "active",
+        },
+        {
+          kind: "cell",
+          col_id: "Amount",
+          type: "number",
+          op: "gte",
+          value: 10000,
+        },
+      ],
+    });
+    ```
+
+  </Accordion>
+</AccordionGroup>
+

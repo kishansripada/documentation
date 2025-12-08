@@ -15,16 +15,17 @@
         "groups": [
           {
             "group": "Getting Started",
-            "pages": [
-              "index"
-            ]
+            "pages": ["index"]
           },
           {
             "group": "Context",
             "pages": [
               "ctx/overview",
               "ctx/this-row",
-              "ctx/sheets",
+              {
+                "group": "Sheets",
+                "pages": ["ctx/sheets", "ctx/get-rows"]
+              },
               "ctx/utilities",
               "ctx/workflow"
             ]
@@ -58,9 +59,7 @@
           },
           {
             "group": "Web Search",
-            "pages": [
-              "services/web/search"
-            ]
+            "pages": ["services/web/search"]
           },
           {
             "group": "Web Scraping",
@@ -81,15 +80,11 @@
           },
           {
             "group": "Geo",
-            "pages": [
-              "services/geo/parse-address"
-            ]
+            "pages": ["services/geo/parse-address"]
           },
           {
             "group": "Google Maps",
-            "pages": [
-              "services/google-maps/scrape"
-            ]
+            "pages": ["services/google-maps/scrape"]
           }
         ]
       },
