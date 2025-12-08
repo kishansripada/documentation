@@ -10,6 +10,10 @@ This section contains common patterns and recipes that users have built on our p
 ## Categories
 
 <CardGroup cols={2}>
+  <Card title="CSV Import & Enrichment" icon="file-csv" href="/recipes/csv-enrichment">
+    Import CSV data and enrich only empty values to save API calls
+  </Card>
+
   <Card title="Data Enrichment" icon="database" href="/recipes/data-enrichment">
     Find websites, contact info, and enrich company/person data
   </Card>
@@ -37,19 +41,22 @@ This section contains common patterns and recipes that users have built on our p
 
 ## Common Patterns
 
-### 1. **SERP + Scraping Pattern**
+### 1. **Empty Value Enrichment Pattern**
+Check if value exists before enriching—save API calls on filled data.
+
+### 2. **SERP + Scraping Pattern**
 Search for a company, get their website, then scrape it for information.
 
-### 2. **LinkedIn Enrichment Pattern**
+### 3. **LinkedIn Enrichment Pattern**
 Find LinkedIn profiles/companies, enrich with contact data.
 
-### 3. **AI Classification Pattern**
+### 4. **AI Classification Pattern**
 Use AI to categorize, validate, or extract structured data from unstructured content.
 
-### 4. **Multi-Source Fallback Pattern**
+### 5. **Multi-Source Fallback Pattern**
 Try multiple data sources in sequence until you find what you need.
 
-### 5. **Deduplication Pattern**
+### 6. **Deduplication Pattern**
 Check if data already exists before creating new records.
 
 ## Getting Started

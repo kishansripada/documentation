@@ -1,0 +1,281 @@
+---
+title: "CSV Import & Enrichment"
+description: "Enrich imported CSV data by filling only empty values"
+---
+
+# CSV Import & Empty Value Enrichment
+
+A common workflow is importing a CSV with partial data and enriching only the missing values. This pattern saves API calls and avoids overwriting existing data.
+
+<Steps>
+  <Step title="Import CSV">
+    Your CSV has partial data—some fields filled, some empty
+  </Step>
+  <Step title="Create View">
+    Filter to show only rows where the target field is empty
+  </Step>
+  <Step title="Set Up Enrichment">
+    Either convert the column to code or create a separate enrichment column
+  </Step>
+  <Step title="Run Empty Rows Only">
+    Run only the filtered rows to enrich missing values
+  </Step>
+</Steps>
+
+---
+
+## Example Scenario
+
+You import a CSV with contact data. Some emails are already filled in, others are missing:
+
+| First Name | Last Name | Company    | Email         |
+| ---------- | --------- | ---------- | ------------- |
+| John       | Doe       | Acme Corp  | john@acme.com |
+| Jane       | Smith     | TechStart  |               |
+| Bob        | Wilson    | BigCo      | bob@bigco.com |
+| Alice      | Brown     | StartupXYZ |               |
+
+You want to enrich **only** Jane and Alice's emails without overwriting John and Bob's existing data.
+
+---
+
+## Two Approaches
+
+There are two ways to handle this:
+
+<Tabs>
+  <Tab title="Approach A: Direct Column Enrichment">
+    **Best for:** When you want to fill in the same column that has missing values.
+
+    1. Create a view that filters for empty Email values
+    2. Convert the Email column to an enrichment column (or it already is one)
+    3. Navigate to the view and run **only those rows**
+
+    <Warning>
+      Be careful not to run rows that already have values—the view helps you target only the empty ones.
+    </Warning>
+
+    ```javascript
+    // Email column code - runs on rows you manually select
+    const firstName = await ctx.thisRow.get("First Name");
+    const lastName = await ctx.thisRow.get("Last Name");
+    const company = await ctx.thisRow.get("Company");
+
+    // Find and enrich contact info
+    const contactInfo = await services.person.contact.get({
+      firstName,
+      lastName,
+      company,
+    });
+
+    return contactInfo?.work_emails?.[0] || contactInfo?.personal_emails?.[0];
+    ```
+
+  </Tab>
+  <Tab title="Approach B: Separate Enrichment Column">
+    **Best for:** When you want to preserve the original column and check for existing values automatically.
+
+    Create a new column (e.g., "Email (Enriched)") that checks for existing values before enriching.
+
+    <Note>
+      **Important:** A column cannot reference itself with `ctx.thisRow.get()`. You must reference a *different* column to check for existing values.
+    </Note>
+
+    ```javascript
+    // "Email (Enriched)" column - checks the original "Email" column first
+    const existingEmail = await ctx.thisRow.get("Email");
+
+    // Skip enrichment if email already exists
+    if (existingEmail && existingEmail.trim() !== "") {
+      return existingEmail;
+    }
+
+    // No existing email - proceed with enrichment
+    const firstName = await ctx.thisRow.get("First Name");
+    const lastName = await ctx.thisRow.get("Last Name");
+    const company = await ctx.thisRow.get("Company");
+
+    const contactInfo = await services.person.contact.get({
+      firstName,
+      lastName,
+      company,
+    });
+
+    return contactInfo?.work_emails?.[0] || contactInfo?.personal_emails?.[0];
+    ```
+
+  </Tab>
+</Tabs>
+
+<Warning>
+  **You cannot reference your own column.** `ctx.thisRow.get("Email")` inside
+  the Email column will not work. If you need to check for existing values, you
+  must use a separate enrichment column that reads from the original column.
+</Warning>
+
+---
+
+## Creating a View for Empty Values
+
+Create a view that shows only rows where the Email field is empty. This lets you target exactly which rows need enrichment.
+
+<Tabs>
+  <Tab title="Method 1: Filter Panel">
+    1. In the right-hand panel, click **Filters**
+    2. Click **Add Filter**
+    3. Set the filter:
+       - Column: **Email**
+       - Operator: **is empty**
+    4. Click **Save filters as view**
+    5. Name your view (e.g., "Missing Emails")
+  </Tab>
+  <Tab title="Method 2: New View">
+    1. In the left sidebar, right-click on your sheet
+    2. Click **+ New View**
+    3. Name your view (e.g., "Missing Emails")
+    4. Navigate to the **Filters** tab
+    5. Add a filter:
+       - Column: **Email**
+       - Operator: **is empty**
+    6. Save the view
+  </Tab>
+  <Tab title="Method 3: Ask Chat">
+    Ask the AI assistant in chat:
+
+    > "Create a view called 'Missing Emails' that shows rows where Email is empty"
+
+    The assistant will create the view with the correct filters automatically.
+
+  </Tab>
+</Tabs>
+
+---
+
+## Running the Enrichment
+
+Once your view is set up:
+
+1. **Click into the view** — Only rows with empty Email values appear
+2. **Select the rows** — Choose which rows to enrich (or select all in the view)
+3. **Click "Run"** — Execute the enrichment on selected rows only
+4. **Watch progress** — As emails are enriched, rows disappear from the view (they no longer match the "is empty" filter)
+
+This gives you real-time progress feedback and ensures you never accidentally overwrite existing data.
+
+---
+
+## Complete Example: Approach B
+
+Here's a full example using the separate enrichment column approach:
+
+```javascript
+// ============================================================================
+// COLUMN: "Email (Enriched)"
+// ============================================================================
+// This column checks the original "Email" column first, then enriches if empty.
+
+// Step 1: Check if email already exists in the original column
+const existingEmail = await ctx.thisRow.get("Email");
+
+if (existingEmail && existingEmail.trim() !== "") {
+  // Email exists - return it without making any API calls
+  return existingEmail;
+}
+
+// Step 2: No existing email - gather data for enrichment
+const firstName = await ctx.thisRow.get("First Name");
+const lastName = await ctx.thisRow.get("Last Name");
+const company = await ctx.thisRow.get("Company");
+
+// Step 3: Find contact information
+const contactInfo = await services.person.contact.get({
+  firstName,
+  lastName,
+  company,
+});
+
+// Step 4: Return the best email found
+return contactInfo?.work_emails?.[0] || contactInfo?.personal_emails?.[0];
+```
+
+**Result:**
+
+| First Name | Last Name | Company    | Email         | Email (Enriched)    |
+| ---------- | --------- | ---------- | ------------- | ------------------- |
+| John       | Doe       | Acme Corp  | john@acme.com | john@acme.com       |
+| Jane       | Smith     | TechStart  |               | jane@techstart.com  |
+| Bob        | Wilson    | BigCo      | bob@bigco.com | bob@bigco.com       |
+| Alice      | Brown     | StartupXYZ |               | alice@startupxyz.io |
+
+The enrichment column returns existing values for John and Bob (no API calls), and enriches only Jane and Alice.
+
+---
+
+## Workflow Summary
+
+| Step           | What Happens                                  | Why It Matters               |
+| -------------- | --------------------------------------------- | ---------------------------- |
+| 1. Import      | User imports CSV with some empty values       | Starting point               |
+| 2. Create View | Filter `WHERE Email IS EMPTY`                 | Shows only rows needing work |
+| 3. Set Up Code | Either convert column or create separate one  | Prepares the enrichment      |
+| 4. Run in View | Run only the filtered/selected rows           | Targeted enrichment          |
+| 5. Progress    | Enriched rows leave view as they're filled in | Visual feedback              |
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Cannot Reference Your Own Column">
+    A column cannot use `ctx.thisRow.get()` to read its own value. If you need to check for existing data before enriching, create a **separate** enrichment column that reads from the original column.
+
+    ```javascript
+    // ❌ WRONG: Inside "Email" column
+    const existingEmail = await ctx.thisRow.get("Email"); // Won't work!
+
+    // ✅ CORRECT: Inside "Email (Enriched)" column
+    const existingEmail = await ctx.thisRow.get("Email"); // Reads from different column
+    ```
+
+  </Accordion>
+
+{" "}
+<Accordion title="Use Views to Target Empty Rows">
+  Create views for "needs enrichment" states. Navigate to the view before
+  running to ensure you only process rows that actually need enrichment.
+</Accordion>
+
+{" "}
+<Accordion title="Batch Wisely">
+  Select manageable batches (50-100 rows) to run at a time. Monitor for errors
+  before processing all data.
+</Accordion>
+
+  <Accordion title="Prioritize Work Email">
+    When enriching contact info, prioritize work emails over personal for B2B outreach:
+
+    ```javascript
+    const contactInfo = await services.person.contact.get({ firstName, lastName, company });
+
+    // Prioritize work email
+    return contactInfo?.work_emails?.[0] || contactInfo?.personal_emails?.[0];
+    ```
+
+  </Accordion>
+
+  <Accordion title="Handle Missing Input Data">
+    Always validate that you have the required input data before making API calls:
+
+    ```javascript
+    const firstName = await ctx.thisRow.get("First Name");
+    const lastName = await ctx.thisRow.get("Last Name");
+
+    if (!firstName || !lastName) {
+      return; // Can't enrich without name
+    }
+
+    // Proceed with enrichment...
+    ```
+
+  </Accordion>
+</AccordionGroup>

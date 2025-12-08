@@ -95,6 +95,7 @@
             "group": "Common Patterns",
             "pages": [
               "recipes/overview",
+              "recipes/csv-enrichment",
               "recipes/data-enrichment",
               "recipes/web-research",
               "recipes/lead-generation",
