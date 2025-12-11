@@ -1,0 +1,471 @@
+---
+title: "HubSpot Integration"
+description: "Manage HubSpot CRM objects including contacts, companies, deals, notes, and workflows"
+---
+
+# HubSpot Integration
+
+The HubSpot integration provides full access to the HubSpot CRM API, including contacts, companies, deals, notes, and workflow automation.
+
+## Setup
+
+<Warning>
+  You must configure HubSpot before using it in your code. Only configured integrations are available to your agent.
+</Warning>
+
+<Steps>
+  <Step title="Open Integrations panel">
+    In your spreadsheet, click **Integrations** in the left panel (or visit `orangeslice.com/spreadsheets/<spreadsheet_id>/edits?panel=integrations`)
+  </Step>
+  <Step title="Configure HubSpot">
+    Select HubSpot and enter your HubSpot access token
+  </Step>
+  <Step title="Use in your code">
+    Once configured, access HubSpot via `integrations.hubspot`
+  </Step>
+</Steps>
+
+---
+
+## Contacts
+
+### Create Contact
+
+```typescript
+const response = await integrations.hubspot.createContact({
+  properties: {
+    email: 'john@example.com',
+    firstname: 'John',
+    lastname: 'Doe',
+    phone: '+1-555-0123',
+    company: 'Acme Inc',
+    jobtitle: 'CEO'
+  },
+  associations: [
+    {
+      to: { id: 'company-id' },
+      types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 1 }]
+    }
+  ]
+});
+
+console.log(response.entity.id); // New contact ID
+```
+
+### Get Contact
+
+```typescript
+const contact = await integrations.hubspot.getContact('contact-id', {
+  properties: ['email', 'firstname', 'lastname', 'phone'],
+  associations: ['companies', 'deals']
+});
+```
+
+### Update Contact
+
+```typescript
+await integrations.hubspot.updateContact('contact-id', {
+  properties: {
+    lifecyclestage: 'customer',
+    hs_lead_status: 'QUALIFIED'
+  }
+});
+```
+
+### Delete Contact
+
+```typescript
+await integrations.hubspot.deleteContact('contact-id');
+```
+
+### List Contacts
+
+```typescript
+const contacts = await integrations.hubspot.listContacts({
+  limit: 100,
+  properties: ['email', 'firstname', 'lastname'],
+  associations: ['companies']
+});
+
+// Pagination
+if (contacts.paging?.next) {
+  const nextPage = await integrations.hubspot.listContacts({
+    after: contacts.paging.next.after
+  });
+}
+```
+
+### Search Contacts
+
+```typescript
+const results = await integrations.hubspot.searchContacts({
+  query: 'john',
+  limit: 10,
+  properties: ['email', 'firstname', 'lastname'],
+  filterGroups: [
+    {
+      filters: [
+        {
+          propertyName: 'lifecyclestage',
+          operator: 'EQ',
+          value: 'lead'
+        }
+      ]
+    }
+  ],
+  sorts: ['createdate']
+});
+
+console.log(`Found ${results.total} contacts`);
+```
+
+---
+
+## Companies
+
+### Create Company
+
+```typescript
+const response = await integrations.hubspot.createCompany({
+  properties: {
+    name: 'Acme Corporation',
+    domain: 'acme.com',
+    industry: 'Technology',
+    numberofemployees: '500',
+    annualrevenue: '10000000',
+    city: 'San Francisco',
+    state: 'CA',
+    country: 'USA'
+  }
+});
+```
+
+### Get Company
+
+```typescript
+const company = await integrations.hubspot.getCompany('company-id', {
+  properties: ['name', 'domain', 'industry'],
+  associations: ['contacts', 'deals']
+});
+```
+
+### Update Company
+
+```typescript
+await integrations.hubspot.updateCompany('company-id', {
+  properties: {
+    lifecyclestage: 'customer',
+    description: 'Updated company description'
+  }
+});
+```
+
+### Search Companies
+
+```typescript
+const results = await integrations.hubspot.searchCompanies({
+  filterGroups: [
+    {
+      filters: [
+        {
+          propertyName: 'annualrevenue',
+          operator: 'GTE',
+          value: '1000000'
+        }
+      ]
+    }
+  ],
+  properties: ['name', 'domain', 'annualrevenue']
+});
+```
+
+---
+
+## Deals
+
+### Create Deal
+
+```typescript
+const response = await integrations.hubspot.createDeal({
+  properties: {
+    dealname: 'Enterprise License',
+    amount: '50000',
+    dealstage: 'appointmentscheduled',
+    pipeline: 'default',
+    closedate: '2024-12-31'
+  },
+  associations: [
+    {
+      to: { id: 'contact-id' },
+      types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 3 }]
+    }
+  ]
+});
+```
+
+### Get Deal
+
+```typescript
+const deal = await integrations.hubspot.getDeal('deal-id', {
+  properties: ['dealname', 'amount', 'dealstage'],
+  associations: ['contacts', 'companies']
+});
+```
+
+### Update Deal
+
+```typescript
+await integrations.hubspot.updateDeal('deal-id', {
+  properties: {
+    dealstage: 'closedwon',
+    amount: '55000'
+  }
+});
+```
+
+### Search Deals
+
+```typescript
+const results = await integrations.hubspot.searchDeals({
+  filterGroups: [
+    {
+      filters: [
+        {
+          propertyName: 'dealstage',
+          operator: 'EQ',
+          value: 'closedwon'
+        },
+        {
+          propertyName: 'amount',
+          operator: 'GTE',
+          value: '10000'
+        }
+      ]
+    }
+  ]
+});
+```
+
+---
+
+## Notes
+
+### Create Note
+
+```typescript
+const response = await integrations.hubspot.createNote({
+  properties: {
+    hs_note_body: 'Called the client about renewal',
+    hs_timestamp: new Date().toISOString()
+  },
+  associations: [
+    {
+      to: { id: 'contact-id' },
+      types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 10 }]
+    }
+  ]
+});
+```
+
+### Get Note
+
+```typescript
+const note = await integrations.hubspot.getNote('note-id', {
+  properties: ['hs_note_body', 'hs_timestamp'],
+  associations: ['contacts', 'companies', 'deals']
+});
+```
+
+### Search Notes
+
+```typescript
+const results = await integrations.hubspot.searchNotes({
+  filterGroups: [
+    {
+      filters: [
+        {
+          propertyName: 'hs_timestamp',
+          operator: 'GTE',
+          value: '2024-01-01'
+        }
+      ]
+    }
+  ]
+});
+```
+
+---
+
+## Workflows (Flows)
+
+### List Workflows
+
+```typescript
+const workflows = await integrations.hubspot.listFlows({
+  limit: 100
+});
+
+for (const flow of workflows.results) {
+  console.log(`${flow.name}: ${flow.isEnabled ? 'Active' : 'Inactive'}`);
+}
+```
+
+### Get Workflow
+
+```typescript
+const flow = await integrations.hubspot.getFlow('flow-id');
+
+console.log(flow.name);
+console.log(flow.enrollmentCriteria);
+console.log(flow.actions);
+```
+
+### Create Workflow
+
+```typescript
+const flow = await integrations.hubspot.createFlow({
+  name: 'Welcome Sequence',
+  type: 'CONTACT_FLOW',
+  objectTypeId: '0-1', // Contacts
+  isEnabled: false,
+  enrollmentCriteria: {
+    type: 'LIST_BASED',
+    shouldReEnroll: false,
+    unEnrollObjectsNotMeetingCriteria: true,
+    listFilterBranch: {
+      filterBranchType: 'AND',
+      filterBranchOperator: 'AND',
+      filterBranches: [],
+      filters: [
+        {
+          filterType: 'PROPERTY',
+          property: 'lifecyclestage',
+          operation: {
+            operationType: 'ENUMERATION',
+            operator: 'IS_ANY_OF',
+            includeObjectsWithNoValueSet: false,
+            values: ['lead']
+          }
+        }
+      ]
+    },
+    reEnrollmentTriggersFilterBranches: []
+  }
+});
+```
+
+### Update Workflow
+
+```typescript
+await integrations.hubspot.updateFlow('flow-id', {
+  revisionId: 'current-revision-id',
+  name: 'Updated Welcome Sequence',
+  isEnabled: true
+});
+```
+
+### Delete Workflow
+
+```typescript
+await integrations.hubspot.deleteFlow('flow-id');
+```
+
+---
+
+## Filter Operators
+
+Available operators for search filters:
+
+| Operator | Description |
+|----------|-------------|
+| `EQ` | Equals |
+| `NEQ` | Not equals |
+| `LT` | Less than |
+| `LTE` | Less than or equal |
+| `GT` | Greater than |
+| `GTE` | Greater than or equal |
+| `BETWEEN` | Between two values |
+| `IN` | In a list of values |
+| `NOT_IN` | Not in a list of values |
+| `HAS_PROPERTY` | Has any value |
+| `NOT_HAS_PROPERTY` | Has no value |
+| `CONTAINS_TOKEN` | Contains text |
+| `NOT_CONTAINS_TOKEN` | Does not contain text |
+
+---
+
+## Types Reference
+
+### HubSpotContactProperties
+
+```typescript
+interface HubSpotContactProperties {
+  email?: string;
+  firstname?: string;
+  lastname?: string;
+  phone?: string;
+  mobilephone?: string;
+  company?: string;
+  website?: string;
+  jobtitle?: string;
+  lifecyclestage?: string;
+  hubspot_owner_id?: string;
+  hs_lead_status?: string;
+  [key: string]: string | undefined;
+}
+```
+
+### HubSpotCompanyProperties
+
+```typescript
+interface HubSpotCompanyProperties {
+  name?: string;
+  domain?: string;
+  description?: string;
+  phone?: string;
+  website?: string;
+  industry?: string;
+  numberofemployees?: string;
+  annualrevenue?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip?: string;
+  address?: string;
+  lifecyclestage?: string;
+  hubspot_owner_id?: string;
+  [key: string]: string | undefined;
+}
+```
+
+### HubSpotDealProperties
+
+```typescript
+interface HubSpotDealProperties {
+  dealname?: string;
+  amount?: string;
+  dealstage?: string;
+  pipeline?: string;
+  closedate?: string;
+  dealtype?: string;
+  description?: string;
+  hubspot_owner_id?: string;
+  hs_priority?: string;
+  createdate?: string;
+  [key: string]: string | undefined;
+}
+```
+
+### HubSpotCrmObject
+
+```typescript
+interface HubSpotCrmObject {
+  id: string;
+  properties: Record<string, string | null>;
+  createdAt: string;
+  updatedAt: string;
+  archived: boolean;
+  archivedAt?: string;
+  propertiesWithHistory?: Record<string, HubSpotValueWithTimestamp[]>;
+}
+```

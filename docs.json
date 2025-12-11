@@ -105,6 +105,21 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Integrations",
+        "groups": [
+          {
+            "group": "Third-Party Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/hubspot",
+              "integrations/salesforce",
+              "integrations/instantly",
+              "integrations/heyreach"
+            ]
+          }
+        ]
       }
     ]
   },

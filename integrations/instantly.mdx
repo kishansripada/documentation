@@ -1,0 +1,465 @@
+---
+title: "Instantly Integration"
+description: "Manage cold email campaigns, sending accounts, and leads with Instantly.ai"
+---
+
+# Instantly Integration
+
+The Instantly integration provides access to the Instantly.ai API for managing cold email campaigns, sending accounts, and leads.
+
+## Setup
+
+<Warning>
+  You must configure Instantly before using it in your code. Only configured integrations are available to your agent.
+</Warning>
+
+<Steps>
+  <Step title="Open Integrations panel">
+    In your spreadsheet, click **Integrations** in the left panel (or visit `orangeslice.com/spreadsheets/<spreadsheet_id>/edits?panel=integrations`)
+  </Step>
+  <Step title="Configure Instantly">
+    Select Instantly and enter your Instantly API key
+  </Step>
+  <Step title="Use in your code">
+    Once configured, access Instantly via `integrations.instantly`
+  </Step>
+</Steps>
+
+---
+
+## Campaigns
+
+### List Campaigns
+
+```typescript
+const response = await integrations.instantly.listCampaigns({
+  limit: 50,
+  search: 'outbound'
+});
+
+for (const campaign of response.items) {
+  console.log(`${campaign.name}: Status ${campaign.status}`);
+}
+
+// Pagination
+if (response.next_starting_after) {
+  const nextPage = await integrations.instantly.listCampaigns({
+    starting_after: response.next_starting_after
+  });
+}
+```
+
+### Get Campaign
+
+```typescript
+const campaign = await integrations.instantly.getCampaign('campaign-id');
+
+console.log('Name:', campaign.name);
+console.log('Status:', campaign.status);
+console.log('Daily Limit:', campaign.daily_limit);
+console.log('Sequences:', campaign.sequences);
+```
+
+### Create Campaign
+
+```typescript
+const campaign = await integrations.instantly.createCampaign({
+  name: 'Q4 Outreach Campaign',
+  campaign_schedule: {
+    start_date: '2024-10-01',
+    end_date: '2024-12-31',
+    schedules: [
+      {
+        name: 'Business Hours',
+        timing: { from: '09:00', to: '17:00' },
+        days: { 1: true, 2: true, 3: true, 4: true, 5: true },
+        timezone: 'America/New_York'
+      }
+    ]
+  },
+  sequences: [
+    {
+      steps: [
+        {
+          type: 'email',
+          delay: 0,
+          variants: [
+            {
+              subject: 'Quick question about {{company}}',
+              body: 'Hi {{firstName}},\n\nI noticed that...'
+            }
+          ]
+        },
+        {
+          type: 'email',
+          delay: 3, // 3 days after previous
+          variants: [
+            {
+              subject: 'Following up',
+              body: 'Hi {{firstName}},\n\nJust wanted to follow up...'
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  daily_limit: 50,
+  stop_on_reply: true,
+  link_tracking: true,
+  open_tracking: true
+});
+```
+
+### Activate Campaign
+
+```typescript
+const campaign = await integrations.instantly.activateCampaign('campaign-id');
+console.log('Campaign is now active');
+```
+
+### Pause Campaign
+
+```typescript
+const campaign = await integrations.instantly.pauseCampaign('campaign-id');
+console.log('Campaign is now paused');
+```
+
+### Get Campaign Analytics
+
+```typescript
+// Single campaign
+const analytics = await integrations.instantly.getCampaignAnalytics({
+  id: 'campaign-id'
+});
+
+// Multiple campaigns
+const analyticsMultiple = await integrations.instantly.getCampaignAnalytics({
+  ids: ['campaign-1', 'campaign-2'],
+  start_date: '2024-01-01',
+  end_date: '2024-12-31'
+});
+
+for (const stat of analyticsMultiple) {
+  console.log(`${stat.campaign_name}:`);
+  console.log(`  Leads: ${stat.leads_count}`);
+  console.log(`  Contacted: ${stat.contacted_count}`);
+  console.log(`  Opens: ${stat.open_count}`);
+  console.log(`  Replies: ${stat.reply_count}`);
+  console.log(`  Bounced: ${stat.bounced_count}`);
+}
+```
+
+---
+
+## Accounts
+
+### List Accounts
+
+```typescript
+const response = await integrations.instantly.listAccounts({
+  limit: 100,
+  status: 1, // Active accounts
+  search: 'gmail'
+});
+
+for (const account of response.items) {
+  console.log(`${account.email}:`);
+  console.log(`  Status: ${account.status}`);
+  console.log(`  Warmup: ${account.warmup_status}`);
+  console.log(`  Daily Limit: ${account.daily_limit}`);
+}
+```
+
+### Get Account
+
+```typescript
+const account = await integrations.instantly.getAccount('sender@example.com');
+
+console.log('Email:', account.email);
+console.log('Name:', `${account.first_name} ${account.last_name}`);
+console.log('Provider:', account.provider_code);
+console.log('Warmup Score:', account.stat_warmup_score);
+```
+
+### Account Status Codes
+
+| Code | Meaning |
+|------|---------|
+| `1` | Active |
+| `2` | Paused |
+| `-1` | Error |
+| `-2` | Disconnected |
+| `-3` | Disabled |
+
+### Warmup Status Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Not started |
+| `1` | Active |
+| `-1` | Paused |
+| `-2` | Disabled |
+| `-3` | Error |
+
+---
+
+## Leads
+
+### List Leads
+
+```typescript
+const response = await integrations.instantly.listLeads({
+  campaign: 'campaign-id',
+  limit: 100,
+  in_campaign: true
+});
+
+for (const lead of response.items) {
+  console.log(`${lead.email}:`);
+  console.log(`  Name: ${lead.first_name} ${lead.last_name}`);
+  console.log(`  Status: ${lead.status}`);
+  console.log(`  Opens: ${lead.email_open_count}`);
+  console.log(`  Replies: ${lead.email_reply_count}`);
+}
+```
+
+### Advanced Lead Filtering
+
+```typescript
+const response = await integrations.instantly.listLeads({
+  campaign: 'campaign-id',
+  queries: [
+    {
+      actionType: 'reply',
+      values: {
+        'occurrence-count': { condition: 'more', count: 0 }
+      }
+    },
+    {
+      actionType: 'email-open',
+      values: {
+        'occurrence-days': 7
+      }
+    }
+  ]
+});
+```
+
+### Get Lead
+
+```typescript
+const lead = await integrations.instantly.getLead('lead-id');
+
+console.log('Email:', lead.email);
+console.log('Company:', lead.company_name);
+console.log('Interest Status:', lead.lt_interest_status);
+```
+
+### Create Lead
+
+```typescript
+const lead = await integrations.instantly.createLead({
+  campaign: 'campaign-id',
+  email: 'prospect@company.com',
+  first_name: 'John',
+  last_name: 'Doe',
+  company_name: 'Acme Corp',
+  website: 'https://acme.com',
+  phone: '+1-555-0123',
+  custom_variables: {
+    industry: 'Technology',
+    employee_count: '500'
+  },
+  skip_if_in_campaign: true
+});
+```
+
+### Update Lead
+
+```typescript
+const lead = await integrations.instantly.updateLead('lead-id', {
+  first_name: 'Jonathan',
+  lt_interest_status: 1, // Interested
+  custom_variables: {
+    notes: 'Requested demo'
+  }
+});
+```
+
+### Delete Lead
+
+```typescript
+await integrations.instantly.deleteLead('lead-id');
+```
+
+### Bulk Add Leads
+
+```typescript
+const result = await integrations.instantly.bulkAddLeads({
+  campaign_id: 'campaign-id',
+  leads: [
+    {
+      email: 'lead1@company.com',
+      first_name: 'John',
+      last_name: 'Doe',
+      company_name: 'Company A'
+    },
+    {
+      email: 'lead2@company.com',
+      first_name: 'Jane',
+      last_name: 'Smith',
+      company_name: 'Company B'
+    }
+  ],
+  skip_if_in_workspace: true,
+  skip_if_in_campaign: true,
+  verify_leads_on_import: true
+});
+
+console.log(`Uploaded: ${result.leads_uploaded}`);
+console.log(`Duplicates: ${result.duplicated_leads}`);
+console.log(`Invalid emails: ${result.invalid_email_count}`);
+console.log(`In blocklist: ${result.in_blocklist}`);
+```
+
+### Update Lead Interest Status
+
+```typescript
+await integrations.instantly.updateLeadInterestStatus({
+  lead_email: 'prospect@company.com',
+  campaign_id: 'campaign-id',
+  interest_value: 1 // Interested
+});
+```
+
+### Lead Status Codes
+
+| Code | Meaning |
+|------|---------|
+| `1` | Active |
+| `2` | Completed |
+| `3` | Paused |
+| `-1` | Bounced |
+| `-2` | Unsubscribed |
+| `-3` | Failed |
+
+### Lead Interest Status Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Not set |
+| `1` | Interested |
+| `2` | Maybe interested |
+| `3` | Not interested |
+| `4` | Wrong person |
+| `-1` | Meeting booked |
+| `-2` | Meeting completed |
+| `-3` | Closed/Won |
+
+---
+
+## Types Reference
+
+### InstantlyCampaign
+
+```typescript
+interface InstantlyCampaign {
+  id: string;
+  name: string;
+  status: InstantlyCampaignStatus;
+  campaign_schedule: InstantlyCampaignSchedule;
+  sequences?: InstantlySequence[];
+  timestamp_created: string;
+  timestamp_updated: string;
+  email_gap?: number | null;
+  daily_limit?: number | null;
+  stop_on_reply?: boolean | null;
+  link_tracking?: boolean | null;
+  open_tracking?: boolean | null;
+  email_list?: string[];
+  // ... additional fields
+}
+```
+
+### InstantlyLead
+
+```typescript
+interface InstantlyLead {
+  id: string;
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  company_name?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  status: InstantlyLeadStatus;
+  email_open_count: number;
+  email_reply_count: number;
+  email_click_count: number;
+  lt_interest_status?: InstantlyLeadInterestStatus;
+  payload?: Record<string, string | number | boolean | null> | null;
+  timestamp_created: string;
+  timestamp_updated: string;
+  // ... additional fields
+}
+```
+
+### InstantlyCampaignSchedule
+
+```typescript
+interface InstantlyCampaignSchedule {
+  start_date?: string;
+  end_date?: string;
+  schedules: InstantlyScheduleItem[];
+}
+
+interface InstantlyScheduleItem {
+  name: string;
+  timing: { from: string; to: string };
+  days: { 0?: boolean; 1?: boolean; 2?: boolean; 3?: boolean; 4?: boolean; 5?: boolean; 6?: boolean };
+  timezone: InstantlyTimezone;
+}
+```
+
+### InstantlySequence
+
+```typescript
+interface InstantlySequence {
+  steps: InstantlySequenceStep[];
+}
+
+interface InstantlySequenceStep {
+  type: 'email';
+  delay: number;
+  variants: InstantlyEmailVariant[];
+}
+
+interface InstantlyEmailVariant {
+  subject: string;
+  body: string;
+  v_disabled?: boolean;
+}
+```
+
+### InstantlyCampaignAnalytics
+
+```typescript
+interface InstantlyCampaignAnalytics {
+  campaign_name: string;
+  campaign_id: string;
+  campaign_status: number;
+  campaign_is_evergreen: boolean;
+  leads_count: number;
+  contacted_count: number;
+  open_count: number;
+  reply_count: number;
+  link_click_count: number;
+  bounced_count: number;
+  unsubscribed_count: number;
+  completed_count: number;
+  emails_sent_count: number;
+  new_leads_contacted_count: number;
+  total_opportunities: number;
+  total_opportunity_value: number;
+}
+```

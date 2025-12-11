@@ -1,0 +1,464 @@
+---
+title: "Salesforce Integration"
+description: "Query records, manage SObjects, perform batch operations, and send emails via Salesforce"
+---
+
+# Salesforce Integration
+
+The Salesforce integration provides comprehensive access to the Salesforce REST API, including SOQL queries, record CRUD operations, batch/composite operations, and email functionality.
+
+## Setup
+
+<Warning>
+  You must configure Salesforce before using it in your code. Only configured integrations are available to your agent.
+</Warning>
+
+<Steps>
+  <Step title="Open Integrations panel">
+    In your spreadsheet, click **Integrations** in the left panel (or visit `orangeslice.com/spreadsheets/<spreadsheet_id>/edits?panel=integrations`)
+  </Step>
+  <Step title="Configure Salesforce">
+    Select Salesforce and enter your instance URL and access token
+  </Step>
+  <Step title="Use in your code">
+    Once configured, access Salesforce via `integrations.salesforce`
+  </Step>
+</Steps>
+
+---
+
+## Query Operations
+
+### SOQL Query
+
+```typescript
+// Basic query
+const result = await integrations.salesforce.query<{
+  Id: string;
+  Name: string;
+  Email: string;
+}>(`
+  SELECT Id, Name, Email 
+  FROM Contact 
+  WHERE Email != null 
+  LIMIT 100
+`);
+
+console.log(`Total records: ${result.totalSize}`);
+for (const record of result.records) {
+  console.log(record.Name, record.Email);
+}
+```
+
+### Query with Pagination
+
+```typescript
+let result = await integrations.salesforce.query('SELECT Id, Name FROM Account');
+
+while (!result.done) {
+  // Process current batch
+  for (const record of result.records) {
+    console.log(record.Name);
+  }
+  
+  // Get next batch
+  if (result.nextRecordsUrl) {
+    result = await integrations.salesforce.queryMore(result.nextRecordsUrl);
+  }
+}
+```
+
+### Include Deleted Records
+
+```typescript
+const result = await integrations.salesforce.query(
+  'SELECT Id, Name FROM Account WHERE IsDeleted = true',
+  { includeDeleted: true }
+);
+```
+
+### SOSL Search
+
+```typescript
+const result = await integrations.salesforce.search(
+  'FIND {John*} IN ALL FIELDS RETURNING Contact(Id, Name, Email), Lead(Id, Name, Email)'
+);
+
+for (const record of result.searchRecords) {
+  console.log(record.attributes.type, record.Name);
+}
+```
+
+---
+
+## Single Record Operations
+
+### Create Record
+
+```typescript
+const result = await integrations.salesforce.createRecord('Contact', {
+  FirstName: 'John',
+  LastName: 'Doe',
+  Email: 'john.doe@example.com',
+  Phone: '+1-555-0123',
+  AccountId: 'account-id'
+});
+
+console.log('Created:', result.id);
+console.log('Success:', result.success);
+```
+
+### Get Record
+
+```typescript
+// Get all fields
+const contact = await integrations.salesforce.getRecord('Contact', 'contact-id');
+
+// Get specific fields
+const contactWithFields = await integrations.salesforce.getRecord<{
+  Id: string;
+  FirstName: string;
+  LastName: string;
+  Email: string;
+}>('Contact', 'contact-id', {
+  fields: ['FirstName', 'LastName', 'Email']
+});
+```
+
+### Update Record
+
+```typescript
+await integrations.salesforce.updateRecord('Contact', 'contact-id', {
+  Phone: '+1-555-9999',
+  Description: 'Updated via API'
+});
+```
+
+### Delete Record
+
+```typescript
+await integrations.salesforce.deleteRecord('Contact', 'contact-id');
+```
+
+### Upsert Record
+
+Upsert using an external ID field:
+
+```typescript
+const result = await integrations.salesforce.upsertRecord(
+  'Contact',
+  'External_Id__c',  // External ID field name
+  'EXT-12345',       // External ID value
+  {
+    FirstName: 'John',
+    LastName: 'Doe',
+    Email: 'john@example.com'
+  }
+);
+
+console.log('Record ID:', result.id);
+console.log('Created:', result.created ?? 'updated');
+```
+
+---
+
+## Batch/Collection Operations
+
+### Create Multiple Records
+
+```typescript
+const results = await integrations.salesforce.createRecords({
+  allOrNone: false, // Continue on partial failures
+  records: [
+    { attributes: { type: 'Contact' }, FirstName: 'John', LastName: 'Doe', Email: 'john@example.com' },
+    { attributes: { type: 'Contact' }, FirstName: 'Jane', LastName: 'Doe', Email: 'jane@example.com' },
+    { attributes: { type: 'Contact' }, FirstName: 'Bob', LastName: 'Smith', Email: 'bob@example.com' }
+  ]
+});
+
+for (const result of results) {
+  if (result.success) {
+    console.log('Created:', result.id);
+  } else {
+    console.error('Failed:', result.errors);
+  }
+}
+```
+
+### Retrieve Multiple Records
+
+```typescript
+const contacts = await integrations.salesforce.retrieveRecords<{
+  Id: string;
+  FirstName: string;
+  LastName: string;
+  Email: string;
+}>({
+  sobject: 'Contact',
+  ids: ['id1', 'id2', 'id3'],
+  fields: ['FirstName', 'LastName', 'Email']
+});
+```
+
+### Update Multiple Records
+
+```typescript
+const results = await integrations.salesforce.updateRecords({
+  allOrNone: true, // All must succeed
+  records: [
+    { Id: 'id1', attributes: { type: 'Contact' }, Phone: '111-111-1111' },
+    { Id: 'id2', attributes: { type: 'Contact' }, Phone: '222-222-2222' }
+  ]
+});
+```
+
+### Delete Multiple Records
+
+```typescript
+const results = await integrations.salesforce.deleteRecords({
+  ids: ['id1', 'id2', 'id3'],
+  allOrNone: false
+});
+```
+
+### Upsert Multiple Records
+
+```typescript
+const results = await integrations.salesforce.upsertRecords({
+  sobject: 'Contact',
+  externalIdField: 'External_Id__c',
+  allOrNone: false,
+  records: [
+    { External_Id__c: 'EXT-001', FirstName: 'John', LastName: 'Doe' },
+    { External_Id__c: 'EXT-002', FirstName: 'Jane', LastName: 'Smith' }
+  ]
+});
+```
+
+---
+
+## Metadata Operations
+
+### Describe Global
+
+List all available SObjects:
+
+```typescript
+const describe = await integrations.salesforce.describeGlobal();
+
+console.log(`Max batch size: ${describe.maxBatchSize}`);
+
+for (const sobject of describe.sobjects) {
+  if (sobject.queryable) {
+    console.log(`${sobject.name} (${sobject.label})`);
+  }
+}
+```
+
+### Describe SObject
+
+Get detailed metadata for a specific object:
+
+```typescript
+const describe = await integrations.salesforce.describeSObject('Contact');
+
+console.log(`Object: ${describe.label}`);
+console.log(`Key Prefix: ${describe.keyPrefix}`);
+
+// List fields
+for (const field of describe.fields) {
+  console.log(`${field.name}: ${field.type} (${field.label})`);
+  
+  if (field.picklistValues?.length) {
+    console.log('  Values:', field.picklistValues.map(p => p.value));
+  }
+}
+
+// List relationships
+for (const rel of describe.childRelationships) {
+  console.log(`Child: ${rel.childSObject} via ${rel.field}`);
+}
+```
+
+---
+
+## Email Operations
+
+### Send Email
+
+```typescript
+const result = await integrations.salesforce.sendEmail({
+  emailAddresses: 'recipient@example.com',
+  emailSubject: 'Hello from Salesforce',
+  emailBody: 'This is a test email sent via the Salesforce API.',
+  senderType: 'CurrentUser'
+});
+
+if (result.isSuccess) {
+  console.log('Email sent successfully');
+} else {
+  console.error('Failed:', result.errors);
+}
+```
+
+### Send Email as Org-Wide Address
+
+```typescript
+const result = await integrations.salesforce.sendEmail({
+  emailAddresses: 'recipient@example.com, another@example.com',
+  emailSubject: 'Company Newsletter',
+  emailBody: 'Monthly newsletter content...',
+  senderType: 'OrgWideEmailAddress',
+  orgWideEmailAddressId: 'org-wide-email-id'
+});
+```
+
+### Sender Types
+
+| Type | Description |
+|------|-------------|
+| `CurrentUser` | Send as the authenticated user (default) |
+| `DefaultWorkflowUser` | Send as the org's default workflow user |
+| `OrgWideEmailAddress` | Send from an org-wide email address |
+
+---
+
+## Types Reference
+
+### SalesforceRecord
+
+```typescript
+interface SalesforceRecord {
+  Id: string;
+  attributes?: {
+    type: string;
+    url: string;
+  };
+  [key: string]: unknown;
+}
+```
+
+### SalesforceQueryResult
+
+```typescript
+interface SalesforceQueryResult<T = SalesforceRecord> {
+  totalSize: number;
+  done: boolean;
+  records: T[];
+  nextRecordsUrl?: string;
+}
+```
+
+### SalesforceCreateResult
+
+```typescript
+interface SalesforceCreateResult {
+  id: string;
+  success: boolean;
+  errors: SalesforceError[];
+}
+```
+
+### SalesforceError
+
+```typescript
+interface SalesforceError {
+  statusCode?: string;
+  message?: string;
+  fields?: string[];
+}
+```
+
+### SalesforceField
+
+```typescript
+interface SalesforceField {
+  name: string;
+  label: string;
+  type: string;
+  length?: number;
+  precision?: number;
+  scale?: number;
+  nillable: boolean;
+  createable: boolean;
+  updateable: boolean;
+  defaultValue?: unknown;
+  picklistValues?: Array<{
+    active: boolean;
+    label: string;
+    value: string;
+    defaultValue: boolean;
+  }>;
+  referenceTo?: string[];
+  relationshipName?: string;
+  externalId?: boolean;
+  unique?: boolean;
+  calculated?: boolean;
+  custom?: boolean;
+}
+```
+
+### SendEmailInput
+
+```typescript
+interface SendEmailInput {
+  /** Email address(es) - single or comma-separated */
+  emailAddresses: string;
+  /** The email subject line */
+  emailSubject: string;
+  /** The plain text email body */
+  emailBody: string;
+  /** Who to send as */
+  senderType?: 'CurrentUser' | 'DefaultWorkflowUser' | 'OrgWideEmailAddress';
+  /** Required for OrgWideEmailAddress */
+  orgWideEmailAddressId?: string;
+  /** Optional reply-to address */
+  replyTo?: string;
+}
+```
+
+---
+
+## Common SOQL Patterns
+
+### Join Queries
+
+```typescript
+// Get Contacts with Account info
+const result = await integrations.salesforce.query(`
+  SELECT Id, Name, Email, Account.Name, Account.Industry
+  FROM Contact
+  WHERE Account.Industry = 'Technology'
+`);
+```
+
+### Aggregate Queries
+
+```typescript
+const result = await integrations.salesforce.query(`
+  SELECT COUNT(Id) total, StageName
+  FROM Opportunity
+  GROUP BY StageName
+`);
+```
+
+### Date Filters
+
+```typescript
+const result = await integrations.salesforce.query(`
+  SELECT Id, Name, CreatedDate
+  FROM Lead
+  WHERE CreatedDate = LAST_N_DAYS:30
+`);
+```
+
+### Relationship Queries
+
+```typescript
+// Parent to child (subquery)
+const result = await integrations.salesforce.query(`
+  SELECT Id, Name, (SELECT Id, FirstName, LastName FROM Contacts)
+  FROM Account
+  WHERE Id = 'account-id'
+`);
+```

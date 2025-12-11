@@ -1,0 +1,602 @@
+---
+title: "HeyReach Integration"
+description: "LinkedIn automation, campaign management, inbox messaging, and lead management with HeyReach"
+---
+
+# HeyReach Integration
+
+The HeyReach integration provides access to LinkedIn automation features including campaigns, inbox messaging, lead management, and network analysis.
+
+## Setup
+
+<Warning>
+  You must configure HeyReach before using it in your code. Only configured integrations are available to your agent.
+</Warning>
+
+<Steps>
+  <Step title="Open Integrations panel">
+    In your spreadsheet, click **Integrations** in the left panel (or visit `orangeslice.com/spreadsheets/<spreadsheet_id>/edits?panel=integrations`)
+  </Step>
+  <Step title="Configure HeyReach">
+    Select HeyReach and enter your HeyReach API key
+  </Step>
+  <Step title="Use in your code">
+    Once configured, access HeyReach via `integrations.heyreach`
+  </Step>
+</Steps>
+
+---
+
+## Authentication
+
+### Check API Key
+
+Verify your API key is valid:
+
+```typescript
+await integrations.heyreach.checkApiKey();
+console.log('API key is valid');
+```
+
+---
+
+## Campaigns
+
+### List Campaigns
+
+```typescript
+const response = await integrations.heyreach.listCampaigns({
+  limit: 50,
+  keyword: 'outreach',
+  statuses: ['IN_PROGRESS', 'PAUSED']
+});
+
+for (const campaign of response.items ?? []) {
+  console.log(`${campaign.name}:`);
+  console.log(`  Status: ${campaign.status}`);
+  console.log(`  Progress: ${campaign.progressStats?.totalUsersFinished}/${campaign.progressStats?.totalUsers}`);
+}
+```
+
+### Get Campaign
+
+```typescript
+const response = await integrations.heyreach.getCampaign('campaign-id');
+const campaign = response.items?.[0];
+
+console.log('Campaign:', campaign?.name);
+console.log('Created:', campaign?.creationTime);
+```
+
+### Resume Campaign
+
+```typescript
+await integrations.heyreach.resumeCampaign('campaign-id');
+console.log('Campaign resumed');
+```
+
+### Pause Campaign
+
+```typescript
+await integrations.heyreach.pauseCampaign('campaign-id');
+console.log('Campaign paused');
+```
+
+### Add Leads to Campaign
+
+```typescript
+const count = await integrations.heyreach.addLeadsToCampaign({
+  campaignId: 12345,
+  accountLeadPairs: [
+    {
+      linkedInAccountId: 67890,
+      lead: {
+        firstName: 'John',
+        lastName: 'Doe',
+        profileUrl: 'https://linkedin.com/in/johndoe',
+        companyName: 'Acme Corp',
+        position: 'CEO',
+        emailAddress: 'john@acme.com',
+        customUserFields: [
+          { name: 'industry', value: 'Technology' }
+        ]
+      }
+    }
+  ]
+});
+
+console.log(`Added ${count} leads to campaign`);
+```
+
+### Add Leads to Campaign V2
+
+Returns detailed stats:
+
+```typescript
+const result = await integrations.heyreach.addLeadsToCampaignV2({
+  campaignId: 12345,
+  accountLeadPairs: [
+    {
+      linkedInAccountId: 67890,
+      lead: {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        profileUrl: 'https://linkedin.com/in/janesmith'
+      }
+    }
+  ]
+});
+
+console.log(`Added: ${result.addedLeadsCount}`);
+console.log(`Updated: ${result.updatedLeadsCount}`);
+console.log(`Failed: ${result.failedLeadsCount}`);
+```
+
+### Stop Lead in Campaign
+
+```typescript
+await integrations.heyreach.stopLeadInCampaign({
+  campaignId: 12345,
+  leadUrl: 'https://linkedin.com/in/johndoe'
+});
+```
+
+### Get Leads from Campaign
+
+```typescript
+const response = await integrations.heyreach.getLeadsFromCampaign({
+  campaignId: 12345,
+  limit: 100,
+  offset: 0
+});
+
+for (const lead of response.items ?? []) {
+  console.log(`${lead.linkedInUserProfile?.firstName} ${lead.linkedInUserProfile?.lastName}`);
+  console.log(`  Status: ${lead.leadCampaignStatus}`);
+  console.log(`  Connection: ${lead.leadConnectionStatus}`);
+  console.log(`  Message: ${lead.leadMessageStatus}`);
+}
+```
+
+### Get Campaigns for Lead
+
+```typescript
+const campaigns = await integrations.heyreach.getCampaignsForLead({
+  profileUrl: 'https://linkedin.com/in/johndoe'
+});
+```
+
+---
+
+## Inbox
+
+### Get Conversations
+
+```typescript
+const conversations = await integrations.heyreach.getConversations({
+  filters: {
+    linkedInAccountIds: [12345],
+    seen: false,
+    searchString: 'interested'
+  },
+  limit: 50
+});
+```
+
+### Get Chatroom
+
+```typescript
+const chatroom = await integrations.heyreach.getChatroom('account-id', 'conversation-id');
+
+console.log('Contact:', chatroom.correspondentProfile?.firstName);
+console.log('Total Messages:', chatroom.totalMessages);
+
+for (const message of chatroom.messages ?? []) {
+  console.log(`${message.sender ?? 'You'}: ${message.body}`);
+}
+```
+
+### Send Message
+
+```typescript
+await integrations.heyreach.sendMessage({
+  conversationId: 'conversation-id',
+  linkedInAccountId: 12345,
+  message: 'Thanks for connecting! I wanted to reach out about...',
+  subject: 'Following up' // Optional for InMail
+});
+```
+
+---
+
+## LinkedIn Accounts
+
+### List LinkedIn Accounts
+
+```typescript
+const response = await integrations.heyreach.listLinkedInAccounts({
+  limit: 50,
+  keyword: 'sales'
+});
+
+for (const account of response.items ?? []) {
+  console.log(`${account.firstName} ${account.lastName}:`);
+  console.log(`  Email: ${account.emailAddress}`);
+  console.log(`  Active: ${account.isActive}`);
+  console.log(`  Active Campaigns: ${account.activeCampaigns}`);
+}
+```
+
+### Get LinkedIn Account
+
+```typescript
+const account = await integrations.heyreach.getLinkedInAccount('account-id');
+
+console.log('Name:', `${account.firstName} ${account.lastName}`);
+console.log('Auth Valid:', account.authIsValid);
+console.log('Navigator:', account.isValidNavigator);
+console.log('Recruiter:', account.isValidRecruiter);
+```
+
+---
+
+## Lists
+
+### Create Empty List
+
+```typescript
+const list = await integrations.heyreach.createEmptyList({
+  name: 'Q4 Prospects',
+  type: 'USER_LIST'
+});
+
+console.log('Created list:', list.id);
+```
+
+### List All Lists
+
+```typescript
+const response = await integrations.heyreach.listLists({
+  limit: 50,
+  listType: 'USER_LIST'
+});
+
+for (const list of response.items ?? []) {
+  console.log(`${list.name}: ${list.totalItemsCount} items`);
+}
+```
+
+### Get List
+
+```typescript
+const list = await integrations.heyreach.getList('list-id');
+
+console.log('List:', list.name);
+console.log('Type:', list.listType);
+console.log('Items:', list.totalItemsCount);
+```
+
+### Add Leads to List
+
+```typescript
+const count = await integrations.heyreach.addLeadsToList({
+  listId: 12345,
+  leads: [
+    {
+      firstName: 'John',
+      lastName: 'Doe',
+      profileUrl: 'https://linkedin.com/in/johndoe',
+      companyName: 'Acme Corp',
+      emailAddress: 'john@acme.com'
+    }
+  ]
+});
+
+console.log(`Added ${count} leads to list`);
+```
+
+### Get Leads from List
+
+```typescript
+const response = await integrations.heyreach.getLeadsFromList({
+  listId: 12345,
+  limit: 100,
+  keyword: 'CEO'
+});
+
+for (const lead of response.items ?? []) {
+  console.log(`${lead.firstName} ${lead.lastName} - ${lead.companyName}`);
+  console.log(`  Position: ${lead.position}`);
+  console.log(`  Tags: ${lead.tags?.join(', ')}`);
+}
+```
+
+### Delete Leads from List
+
+```typescript
+await integrations.heyreach.deleteLeadsFromList({
+  listId: 12345,
+  leadMemberIds: ['member-1', 'member-2']
+});
+```
+
+### Delete Leads by Profile URL
+
+```typescript
+await integrations.heyreach.deleteLeadsFromListByProfileUrl({
+  listId: 12345,
+  profileUrls: [
+    'https://linkedin.com/in/johndoe',
+    'https://linkedin.com/in/janesmith'
+  ]
+});
+```
+
+### Get Companies from List
+
+```typescript
+const response = await integrations.heyreach.getCompaniesFromList({
+  listId: 12345,
+  limit: 50
+});
+
+for (const company of response.items ?? []) {
+  console.log(`${company.name}:`);
+  console.log(`  Industry: ${company.industry}`);
+  console.log(`  Size: ${company.companySize}`);
+  console.log(`  LinkedIn Employees: ${company.employeesOnLinkedIn}`);
+}
+```
+
+---
+
+## Lead Management
+
+### Get Lead
+
+```typescript
+const lead = await integrations.heyreach.getLead({
+  profileUrl: 'https://linkedin.com/in/johndoe'
+});
+```
+
+### Add Tags to Lead
+
+```typescript
+await integrations.heyreach.addTags({
+  leadProfileUrl: 'https://linkedin.com/in/johndoe',
+  tags: ['VIP', 'Enterprise'],
+  createTagIfNotExisting: true
+});
+```
+
+### Get Tags
+
+```typescript
+const tags = await integrations.heyreach.getTags({
+  profileUrl: 'https://linkedin.com/in/johndoe'
+});
+```
+
+### Replace Tags
+
+```typescript
+await integrations.heyreach.replaceTags({
+  leadProfileUrl: 'https://linkedin.com/in/johndoe',
+  tags: ['New Tag'],
+  createTagIfNotExisting: true
+});
+```
+
+---
+
+## Stats
+
+### Get Overall Stats
+
+```typescript
+const stats = await integrations.heyreach.getOverallStats({
+  accountIds: [12345, 67890],
+  campaignIds: [111, 222],
+  startDate: '2024-01-01',
+  endDate: '2024-12-31'
+});
+```
+
+---
+
+## Webhooks
+
+### Create Webhook
+
+```typescript
+const webhook = await integrations.heyreach.createWebhook({
+  webhookName: 'Reply Notifications',
+  webhookUrl: 'https://myapp.com/webhooks/heyreach',
+  eventType: 'MESSAGE_REPLY_RECEIVED',
+  campaignIds: [12345]
+});
+```
+
+### List Webhooks
+
+```typescript
+const webhooks = await integrations.heyreach.listWebhooks({
+  limit: 50
+});
+```
+
+### Get Webhook
+
+```typescript
+const webhook = await integrations.heyreach.getWebhook(123);
+```
+
+### Update Webhook
+
+```typescript
+await integrations.heyreach.updateWebhook(123, {
+  webhookName: 'Updated Name',
+  isActive: false
+});
+```
+
+### Delete Webhook
+
+```typescript
+await integrations.heyreach.deleteWebhook(123);
+```
+
+### Webhook Event Types
+
+| Event | Description |
+|-------|-------------|
+| `CONNECTION_REQUEST_SENT` | Connection request was sent |
+| `CONNECTION_REQUEST_ACCEPTED` | Connection request was accepted |
+| `MESSAGE_SENT` | Message was sent |
+| `MESSAGE_REPLY_RECEIVED` | Reply was received |
+| `INMAIL_SENT` | InMail was sent |
+| `INMAIL_REPLY_RECEIVED` | InMail reply was received |
+| `FOLLOW_SENT` | Follow action completed |
+| `LIKED_POST` | Post was liked |
+| `VIEWED_PROFILE` | Profile was viewed |
+| `CAMPAIGN_COMPLETED` | Campaign finished |
+| `LEAD_TAG_UPDATED` | Lead tags were updated |
+
+---
+
+## My Network
+
+### Get My Network
+
+```typescript
+const network = await integrations.heyreach.getMyNetwork({
+  senderId: 12345,
+  pageNumber: 1,
+  pageSize: 100
+});
+```
+
+### Check If Connection
+
+```typescript
+const result = await integrations.heyreach.isConnection({
+  senderAccountId: 12345,
+  leadProfileUrl: 'https://linkedin.com/in/johndoe'
+});
+```
+
+---
+
+## Types Reference
+
+### HeyReachCampaign
+
+```typescript
+interface HeyReachCampaign {
+  id?: string;
+  name?: string;
+  creationTime?: string;
+  linkedInUserListName?: string;
+  linkedInUserListId?: string;
+  campaignAccountIds?: string[];
+  status?: HeyReachCampaignStatus | null;
+  progressStats?: HeyReachProgressStats;
+}
+
+type HeyReachCampaignStatus = 
+  | 'DRAFT' 
+  | 'IN_PROGRESS' 
+  | 'PAUSED' 
+  | 'FINISHED' 
+  | 'CANCELED' 
+  | 'FAILED' 
+  | 'STARTING';
+```
+
+### HeyReachLeadInput
+
+```typescript
+interface HeyReachLeadInput {
+  firstName?: string;
+  lastName?: string;
+  location?: string;
+  summary?: string;
+  companyName?: string;
+  position?: string;
+  about?: string;
+  emailAddress?: string;
+  customUserFields?: { name: string; value: string }[];
+  profileUrl?: string;
+}
+```
+
+### HeyReachCampaignLead
+
+```typescript
+interface HeyReachCampaignLead {
+  id?: number;
+  linkedInUserProfileId?: string;
+  linkedInUserProfile?: HeyReachLinkedInUserProfile;
+  lastActionTime?: string;
+  creationTime?: string;
+  leadCampaignStatus?: HeyReachLeadCampaignStatus;
+  leadConnectionStatus?: HeyReachLeadConnectionStatus;
+  leadMessageStatus?: HeyReachLeadMessageStatus;
+  linkedInSenderId?: number;
+  linkedInSenderFullName?: string;
+}
+
+type HeyReachLeadCampaignStatus = 'Pending' | 'InSequence' | 'Finished' | 'Paused' | 'Failed';
+type HeyReachLeadConnectionStatus = 'None' | 'ConnectionSent' | 'ConnectionAccepted';
+type HeyReachLeadMessageStatus = 'None' | 'MessageSent' | 'MessageReply';
+```
+
+### HeyReachLinkedInAccount
+
+```typescript
+interface HeyReachLinkedInAccount {
+  id?: string;
+  emailAddress?: string;
+  firstName?: string;
+  lastName?: string;
+  isActive?: string;
+  activeCampaigns?: string;
+  authIsValid?: string;
+  isValidNavigator?: string;
+  isValidRecruiter?: string;
+}
+```
+
+### HeyReachList
+
+```typescript
+interface HeyReachList {
+  id?: string;
+  name?: string;
+  totalItemsCount?: string;
+  listType?: HeyReachListType | null;
+  creationTime?: string;
+  campaignIds?: string[];
+}
+
+type HeyReachListType = 'USER_LIST' | 'COMPANY_LIST';
+```
+
+### HeyReachChatroom
+
+```typescript
+interface HeyReachChatroom {
+  id?: string;
+  read?: string;
+  groupChat?: string;
+  lastMessageAt?: string;
+  lastMessageText?: string;
+  totalMessages?: string;
+  campaignId?: string;
+  linkedInAccountId?: string;
+  correspondentProfile?: HeyReachCorrespondentProfile;
+  linkedInAccount?: HeyReachLinkedInAccount;
+  messages?: HeyReachMessage[];
+}
+```

@@ -1,0 +1,107 @@
+---
+title: "Integrations Overview"
+description: "Connect your workflows to external services like HubSpot, Salesforce, Instantly, and HeyReach"
+---
+
+# Integrations
+
+Orange Slice provides native integration clients for popular CRM and outreach platforms. These clients are fully typed and ready to use directly in your column code—once configured.
+
+<Warning>
+  **You must configure an integration before your agent can access it.** Only
+  the integrations you configure will appear in the type layer and be available
+  in your column code.
+</Warning>
+
+## Configuring Integrations
+
+To configure an integration:
+
+<Steps>
+  <Step title="Open your spreadsheet">
+    Navigate to your spreadsheet at `orangeslice.com/spreadsheets/<spreadsheet_id>/edit`
+  </Step>
+  <Step title="Open the Integrations panel">
+    In the left-hand panel, click **Integrations** at the bottom.
+  </Step>
+  <Step title="Configure your integration">
+    Select the integration you want to configure and enter your credentials (API key, access token, etc.).
+  </Step>
+</Steps>
+
+Once configured, the integration will be available in your column code via the `integrations` object.
+
+## Supported Integrations
+
+<CardGroup cols={2}>
+  <Card title="HubSpot" icon="hubspot" href="/integrations/hubspot">
+    Manage contacts, companies, deals, notes, and workflows
+  </Card>
+  <Card title="Salesforce" icon="salesforce" href="/integrations/salesforce">
+    Query records, manage objects, and send emails
+  </Card>
+  <Card title="Instantly" icon="bolt" href="/integrations/instantly">
+    Email outreach campaigns, leads, and accounts
+  </Card>
+  <Card title="HeyReach" icon="linkedin" href="/integrations/heyreach">
+    LinkedIn automation, campaigns, and lead management
+  </Card>
+</CardGroup>
+
+## Using Integrations in Code
+
+Once configured, use integrations directly in your column code:
+
+```typescript
+// After configuring HubSpot in the Integrations panel
+const contact = await integrations.hubspot.createContact({
+  properties: { email: "john@example.com", firstname: "John" },
+});
+
+// After configuring Instantly in the Integrations panel
+const campaigns = await integrations.instantly.listCampaigns();
+```
+
+<Note>
+  If you try to use an integration that hasn't been configured, you'll get an
+  error. Make sure to configure the integration in the left panel before using
+  it in your code.
+</Note>
+
+## Error Handling
+
+All integration methods throw errors on API failures. Use try/catch to handle them:
+
+```typescript
+try {
+  const contact = await integrations.hubspot.getContact("contact-id");
+} catch (error) {
+  console.error("API Error:", error.message);
+  // Handle the error appropriately
+}
+```
+
+## Type Safety
+
+All integrations are fully typed with TypeScript. You get autocomplete and type checking for:
+
+- Method parameters
+- Response objects
+- Filter operators and enums
+
+```typescript
+// Full autocomplete support
+const result = await integrations.hubspot.searchContacts({
+  filterGroups: [
+    {
+      filters: [
+        {
+          propertyName: "email",
+          operator: "EQ", // Typed enum values
+          value: "john@example.com",
+        },
+      ],
+    },
+  ],
+});
+```
