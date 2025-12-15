@@ -5,7 +5,7 @@ icon: "magnifying-glass"
 ---
 
 <Info>
-   <Icon icon="coins" /> **2 credits** per call
+  <Icon icon="coins" /> **2 credits** per call
 </Info>
 
 ## Method
@@ -17,15 +17,15 @@ services.company.linkedin.findUrl(params);
 ## Input
 
 <ParamField path="companyName" type="string" optional>
-   Company name
+  Company name
 </ParamField>
 
 <ParamField path="website" type="string" optional>
-   Company website URL
+  Company website URL
 </ParamField>
 
 <ParamField path="location" type="string" optional>
-   Location to narrow search
+  Location to narrow search
 </ParamField>
 
 ## Output
@@ -36,8 +36,8 @@ Returns `string | null` - the LinkedIn company page URL if found.
 
 ```typescript
 const linkedinUrl = await services.company.linkedin.findUrl({
-   companyName: ctx.thisRow.get("Company Name"),
-   website: ctx.thisRow.get("Website"),
+  companyName: ctx.thisRow.get("Company Name"),
+  website: ctx.thisRow.get("Website"),
 });
 
 return linkedinUrl;

@@ -4,50 +4,49 @@ description: "Scrape websites and convert content to markdown"
 icon: "file-code"
 ---
 
-<Info><Icon icon="coins" /> **1 credit** per call</Info>
+<Info>
+  <Icon icon="coins" /> **1 credit** per call
+</Info>
 
 ## Method
 
 ```typescript
-services.scrape.website(params)
+services.scrape.website(params);
 ```
 
 ## Input
 
 <ParamField path="url" type="string" required>
-   URL to scrape (must start with `http://` or `https://`)
+  URL to scrape (must start with `http://` or `https://`)
 </ParamField>
 
 <ParamField path="params.limit" type="number" default={1}>
-   Number of pages to scrape (follows links)
+  Number of pages to scrape (follows links)
 </ParamField>
 
 ## Output
 
 <ResponseField name="markdown" type="string">
-   Combined markdown content from all pages
+  Combined markdown content from all pages
 </ResponseField>
 
 <ResponseField name="data" type="array">
-   Per-page data:
-   - `markdown` - Page content as markdown
-   - `links` - Links found on page
+  Per-page data: - `markdown` - Page content as markdown - `links` - Links found
+  on page
 </ResponseField>
 
 <ResponseField name="socialUrls" type="object">
-   Extracted social/contact URLs:
-   - `emailGeneral` - Emails found
-   - `phoneGeneral` - Phone numbers
-   - `linkedinProfile` / `linkedinCompany` - LinkedIn URLs
-   - `facebookProfile` / `instagramProfile` / `twitterUser` - Social profiles
-   - `youtubeChannel` / `tiktokProfile` - Video platforms
+  Extracted social/contact URLs: - `emailGeneral` - Emails found -
+  `phoneGeneral` - Phone numbers - `linkedinProfile` / `linkedinCompany` -
+  LinkedIn URLs - `facebookProfile` / `instagramProfile` / `twitterUser` -
+  Social profiles - `youtubeChannel` / `tiktokProfile` - Video platforms
 </ResponseField>
 
 ## Example
 
 ```typescript
 const result = await services.scrape.website({
-   url: "https://example.com/about"
+  url: "https://example.com/about",
 });
 
 return result.markdown;
@@ -56,7 +55,7 @@ return result.markdown;
 ```typescript
 // Extract contact info
 const result = await services.scrape.website({
-   url: ctx.thisRow.get("Website")
+  url: ctx.thisRow.get("Website"),
 });
 
 return result.socialUrls.emailGeneral[0];

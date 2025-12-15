@@ -13,13 +13,13 @@ Webhooks allow your spreadsheet to receive HTTP requests from external services.
 In webhook columns, you have access to a `webhook` object with request information:
 
 ```typescript
-webhook.method      // HTTP method (GET, POST, PUT, etc.)
-webhook.url         // Full request URL
-webhook.headers     // Request headers as key-value pairs
-webhook.query       // Query parameters as key-value pairs
-webhook.body        // Request body (parsed JSON or raw data)
-webhook.receivedAt  // Timestamp when request was received
-webhook.ip          // IP address of the requester
+webhook.method; // HTTP method (GET, POST, PUT, etc.)
+webhook.url; // Full request URL
+webhook.headers; // Request headers as key-value pairs
+webhook.query; // Query parameters as key-value pairs
+webhook.body; // Request body (parsed JSON or raw data)
+webhook.receivedAt; // Timestamp when request was received
+webhook.ip; // IP address of the requester
 ```
 
 ## Quick Example
@@ -27,7 +27,7 @@ webhook.ip          // IP address of the requester
 ```typescript
 // Validate required fields
 if (!webhook.body.email || !webhook.body.name) {
-   return { success: false, error: "Email and name required" };
+  return { success: false, error: "Email and name required" };
 }
 
 // Add webhook data to sheet
@@ -58,7 +58,8 @@ webhook.addRootFieldsToSheet("Leads", true);
 ## Context Availability
 
 <Note>
-   In webhook columns, `ctx.thisRow` and `ctx.thisCell` are **not available**. Use the `webhook` object instead.
+  In webhook columns, `ctx.thisRow` and `ctx.thisCell` are **not available**.
+  Use the `webhook` object instead.
 </Note>
 
 **Available:** `webhook`, `ctx.sheet()`, `ctx.getRowByValue()`, `ctx.utils`, `services`
@@ -68,11 +69,10 @@ webhook.addRootFieldsToSheet("Leads", true);
 ## Learn More
 
 <CardGroup cols={2}>
-   <Card title="Setup Guide" icon="play" href="/webhooks/setup">
-      Create and test webhooks
-   </Card>
-   <Card title="API Reference" icon="book" href="/webhooks/reference">
-      Complete webhook API documentation
-   </Card>
+  <Card title="Setup Guide" icon="play" href="/webhooks/setup">
+    Create and test webhooks
+  </Card>
+  <Card title="API Reference" icon="book" href="/webhooks/reference">
+    Complete webhook API documentation
+  </Card>
 </CardGroup>
-

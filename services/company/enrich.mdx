@@ -4,103 +4,109 @@ description: "Get comprehensive company data from LinkedIn"
 icon: "building-circle-arrow-right"
 ---
 
-<Info><Icon icon="coins" /> **5 credits** per company</Info>
+<Info>
+  <Icon icon="coins" /> **5 credits** per company
+</Info>
 
 ## Method
 
 ```typescript
-services.company.linkedin.enrich(params)
+services.company.linkedin.enrich(params);
 ```
 
 ## Input
 
 <ParamField path="id" type="number" optional>
-   CoreSignal company ID
+  CoreSignal company ID
 </ParamField>
 
 <ParamField path="shorthand" type="string" optional>
-   LinkedIn company slug
+  LinkedIn company slug
 </ParamField>
 
 <ParamField path="url" type="string" optional>
-   LinkedIn company URL
+  LinkedIn company URL
 </ParamField>
 
 <ParamField path="companyDomain" type="string" optional>
-   Company website domain
+  Company website domain
 </ParamField>
 
 <ParamField path="enrichLevel" type="string" default="basic">
-   `"basic"` or `"extended"`. Extended includes deep financials, traffic, reviews, salaries, and time-series data.
+  `"basic"` or `"extended"`. Extended includes deep financials, traffic,
+  reviews, salaries, and time-series data.
 </ParamField>
 
-<Note>Exactly one of `id`, `shorthand`, `url`, or `companyDomain` must be provided.</Note>
+<Note>
+  Exactly one of `id`, `shorthand`, `url`, or `companyDomain` must be provided.
+</Note>
 
 ## Output (Basic)
 
 <ResponseField name="id" type="number">
-   CoreSignal company ID
+  CoreSignal company ID
 </ResponseField>
 
 <ResponseField name="name" type="string">
-   Company name
+  Company name
 </ResponseField>
 
 <ResponseField name="industry" type="string">
-   Industry classification
+  Industry classification
 </ResponseField>
 
 <ResponseField name="type" type="string">
-   Company type (Public, Private, etc.)
+  Company type (Public, Private, etc.)
 </ResponseField>
 
 <ResponseField name="founded" type="string">
-   Year founded
+  Year founded
 </ResponseField>
 
 <ResponseField name="size_range" type="string">
-   Employee count range
+  Employee count range
 </ResponseField>
 
 <ResponseField name="size_employees_count" type="number">
-   Estimated employee count
+  Estimated employee count
 </ResponseField>
 
 <ResponseField name="description" type="string">
-   Company description
+  Company description
 </ResponseField>
 
 <ResponseField name="specialities" type="string[]">
-   Company specialties/focus areas
+  Company specialties/focus areas
 </ResponseField>
 
 <ResponseField name="websites_linkedin" type="string">
-   LinkedIn page URL
+  LinkedIn page URL
 </ResponseField>
 
 <ResponseField name="websites_main" type="string">
-   Main website
+  Main website
 </ResponseField>
 
 <ResponseField name="location_hq_country" type="string">
-   HQ country
+  HQ country
 </ResponseField>
 
 <ResponseField name="location_hq_raw_address" type="string">
-   Full HQ address
+  Full HQ address
 </ResponseField>
 
 <ResponseField name="funding_rounds" type="array">
-   Funding history
+  Funding history
 </ResponseField>
 
 <ResponseField name="technologies_used" type="array">
-   Technology stack
+  Technology stack
 </ResponseField>
 
 ## Extended Output (Additional Fields)
 
 Extended enrichment adds deep intelligence including:
+
 - Financial data (revenue, funding details)
 - Web traffic analytics
 - Online reviews and ratings
@@ -111,10 +117,9 @@ Extended enrichment adds deep intelligence including:
 
 ```typescript
 const company = await services.company.linkedin.enrich({
-   url: ctx.thisRow.get("LinkedIn URL"),
-   enrichLevel: "basic"
+  url: ctx.thisRow.get("LinkedIn URL"),
+  enrichLevel: "basic",
 });
 
 return company.size_employees_count;
 ```
-

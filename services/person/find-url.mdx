@@ -5,7 +5,7 @@ icon: "magnifying-glass"
 ---
 
 <Info>
-   <Icon icon="coins" /> **2 credits** per call
+  <Icon icon="coins" /> **2 credits** per call
 </Info>
 
 ## Method
@@ -17,27 +17,27 @@ services.person.linkedin.findUrl(params);
 ## Input
 
 <ParamField path="name" type="string" optional>
-   Full name of the person
+  Full name of the person
 </ParamField>
 
 <ParamField path="title" type="string" optional>
-   Job title
+  Job title
 </ParamField>
 
 <ParamField path="company" type="string" optional>
-   Company name
+  Company name
 </ParamField>
 
 <ParamField path="keyword" type="string" optional>
-   Additional keyword (industry, specialization, etc.)
+  Additional keyword (industry, specialization, etc.)
 </ParamField>
 
 <ParamField path="email" type="string" optional>
-   Email address
+  Email address
 </ParamField>
 
 <ParamField path="location" type="string" optional>
-   Location string (city, state, country)
+  Location string (city, state, country)
 </ParamField>
 
 ## Output
@@ -48,9 +48,9 @@ Returns `string | undefined` - the LinkedIn profile URL if found.
 
 ```typescript
 const linkedinUrl = await services.person.linkedin.findUrl({
-   name: ctx.thisRow.get("Name"),
-   company: ctx.thisRow.get("Company"),
-   title: ctx.thisRow.get("Title"),
+  name: ctx.thisRow.get("Name"),
+  company: ctx.thisRow.get("Company"),
+  title: ctx.thisRow.get("Title"),
 });
 
 return linkedinUrl;

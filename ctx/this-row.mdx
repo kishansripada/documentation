@@ -9,7 +9,8 @@ icon: "table-rows"
 `ctx.thisRow` provides convenient methods to read and write data on the currently executing row. This is the most common way to interact with your data within column formulas.
 
 <Note>
-   `ctx.thisRow` is **not available** in webhook columns, as there is no "current row" context during webhook execution.
+  `ctx.thisRow` is **not available** in webhook columns, as there is no "current
+  row" context during webhook execution.
 </Note>
 
 ## Methods
@@ -24,7 +25,7 @@ ctx.thisRow.get(columnName: string): any
 
 **Parameters:**
 
--  `columnName` - The name of the column to read from
+- `columnName` - The name of the column to read from
 
 **Returns:** The value stored in that column for the current row
 
@@ -46,4 +47,49 @@ const companyWebsite = ctx.thisRow.get("Companies.website");
 
 // You can chain through multiple relationships
 const ownerEmail = ctx.thisRow.get("Companies.Owner.email");
+```
+
+### cell()
+
+Get a **Cell object** for a specific column on the current row. This is useful when you need the cell’s **value + execution status + error message**.
+
+```typescript
+await ctx.thisRow.cell(columnName: string): Promise<{
+  rowId: string;
+  colId: string;
+  value: any;
+  status: string | null;
+  error: string | null;
+}>
+```
+
+**Parameters:**
+
+- `columnName` - The column name (or FK dot path) to read from
+
+**Returns:** A Cell object with:
+
+- `value` — The cell’s value
+- `status` — Execution status (for example: `"success"`, `"error"`, `"pending"`, `"running"`) or `null`
+- `error` — Error message if execution failed, otherwise `null`
+
+**Example:**
+
+```typescript
+const emailCell = await ctx.thisRow.cell("email");
+
+if (emailCell.status === "error") {
+  return `Invalid email: ${emailCell.error}`;
+}
+
+return emailCell.value;
+```
+
+### thisCell (current executing cell)
+
+If you specifically want the *currently executing* cell (the one this formula is running in), use `ctx.thisCell`:
+
+```typescript
+const current = await ctx.thisCell.get();
+await ctx.thisCell.set(current ? String(current).trim() : null);
 ```

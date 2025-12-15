@@ -20,7 +20,7 @@ ctx.utils.ensureHttp(url: string): string
 
 **Parameters:**
 
--  `url` - The URL to normalize
+- `url` - The URL to normalize
 
 **Returns:** The URL with a protocol
 
@@ -46,7 +46,7 @@ const rawUrl = ctx.thisRow.get("website");
 const normalizedUrl = ctx.utils.ensureHttp(rawUrl);
 
 const content = await services.scrape.website({
-   url: normalizedUrl,
+  url: normalizedUrl,
 });
 
 return content.markdown;
@@ -62,7 +62,7 @@ ctx.utils.normalizeUrl(url: string): string
 
 **Parameters:**
 
--  `url` - The URL to normalize
+- `url` - The URL to normalize
 
 **Returns:** The normalized URL (domain only, no protocol or www)
 
@@ -90,10 +90,13 @@ const website = ctx.thisRow.get("website");
 const normalizedDomain = ctx.utils.normalizeUrl(website);
 
 // Check if this domain already exists
-const existingCompany = await ctx.getRowByValue("normalized_domain", normalizedDomain);
+const existingCompany = await ctx.getRowByValue(
+  "normalized_domain",
+  normalizedDomain
+);
 
 if (existingCompany) {
-   return "duplicate";
+  return "duplicate";
 }
 
 return normalizedDomain;
@@ -109,4 +112,3 @@ return normalizedDomain;
 3. **Handle edge cases**: Check for null/empty values before normalizing
 
 </Tip>
-

@@ -4,12 +4,14 @@ description: "Deep research with web access"
 icon: "microscope"
 ---
 
-<Info><Icon icon="coins" /> **1 credit** per call</Info>
+<Info>
+  <Icon icon="coins" /> **1 credit** per call
+</Info>
 
 ## Method
 
 ```typescript
-services.ai.generateResearch(params)
+services.ai.generateResearch(params);
 ```
 
 Performs comprehensive web research on a topic using AI.
@@ -17,20 +19,22 @@ Performs comprehensive web research on a topic using AI.
 ## Input
 
 <ParamField path="query" type="string" required>
-   Research query/topic
+  Research query/topic
 </ParamField>
 
 ## Output
 
 <ResponseField name="content" type="string">
-   Research report content
+  Research report content
 </ResponseField>
 
 ## Example
 
 ```typescript
 const research = await services.ai.generateResearch({
-   query: `What is ${ctx.thisRow.get("Company")}'s market position and recent news?`
+  query: `What is ${ctx.thisRow.get(
+    "Company"
+  )}'s market position and recent news?`,
 });
 
 return research.content;

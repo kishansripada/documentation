@@ -4,12 +4,14 @@ description: "Scrape job listings from a careers page"
 icon: "list-check"
 ---
 
-<Info><Icon icon="coins" /> **1 credit** per call</Info>
+<Info>
+  <Icon icon="coins" /> **1 credit** per call
+</Info>
 
 ## Method
 
 ```typescript
-services.company.careers.scrapeJobs(params)
+services.company.careers.scrapeJobs(params);
 ```
 
 Supports major ATS providers including Workday, iCIMS, Greenhouse, Lever, and LinkedIn.
@@ -17,23 +19,23 @@ Supports major ATS providers including Workday, iCIMS, Greenhouse, Lever, and Li
 ## Input
 
 <ParamField path="url" type="string" required>
-   Careers page URL to scrape
+  Careers page URL to scrape
 </ParamField>
 
 <ParamField path="maxJobs" type="number" default={1000}>
-   Maximum jobs to scrape
+  Maximum jobs to scrape
 </ParamField>
 
 <ParamField path="recent" type="string" default="all">
-   Filter by recency: `"24h"`, `"week"`, `"month"`, or `"all"`
+  Filter by recency: `"24h"`, `"week"`, `"month"`, or `"all"`
 </ParamField>
 
 <ParamField path="scrapeDetails" type="boolean" default={false}>
-   Include full job descriptions (slower)
+  Include full job descriptions (slower)
 </ParamField>
 
 <ParamField path="exactMatchingOnly" type="boolean" default={false}>
-   Only return jobs with guaranteed unique IDs
+  Only return jobs with guaranteed unique IDs
 </ParamField>
 
 ## Output
@@ -41,32 +43,32 @@ Supports major ATS providers including Workday, iCIMS, Greenhouse, Lever, and Li
 Returns an array of job objects:
 
 <ResponseField name="title" type="string">
-   Job title
+  Job title
 </ResponseField>
 
 <ResponseField name="id" type="string" optional>
-   Job ID (if available)
+  Job ID (if available)
 </ResponseField>
 
 <ResponseField name="location" type="string" optional>
-   Job location
+  Job location
 </ResponseField>
 
 <ResponseField name="description" type="string" optional>
-   Full description (if `scrapeDetails: true`)
+  Full description (if `scrapeDetails: true`)
 </ResponseField>
 
 <ResponseField name="datePosted" type="string" optional>
-   Posted date
+  Posted date
 </ResponseField>
 
 ## Example
 
 ```typescript
 const jobs = await services.company.careers.scrapeJobs({
-   url: "https://careers.acme.com",
-   maxJobs: 100,
-   recent: "week",
+  url: "https://careers.acme.com",
+  maxJobs: 100,
+  recent: "week",
 });
 
 return jobs.filter((j) => j.title.includes("Engineer"));
@@ -77,17 +79,16 @@ return jobs.filter((j) => j.title.includes("Engineer"));
 ```typescript
 // First find the careers page
 const careers = await services.company.careers.findPage({
-   domain: ctx.thisRow.get("Website"),
-   companyLinkedinUrl: ctx.thisRow.get("Company LinkedIn"),
+  domain: ctx.thisRow.get("Website"),
+  companyLinkedinUrl: ctx.thisRow.get("Company LinkedIn"),
 });
 
 // Then scrape the job listings
 const jobs = await services.company.careers.scrapeJobs({
-   url: careers.url,
-   maxJobs: 50,
-   recent: "week",
+  url: careers.url,
+  maxJobs: 50,
+  recent: "week",
 });
 
 return jobs;
 ```
-

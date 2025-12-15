@@ -4,40 +4,42 @@ description: "Generate text with optional web search"
 icon: "font"
 ---
 
-<Info><Icon icon="coins" /> **1 credit** per call</Info>
+<Info>
+  <Icon icon="coins" /> **1 credit** per call
+</Info>
 
 ## Method
 
 ```typescript
-services.ai.generateText(params)
+services.ai.generateText(params);
 ```
 
 ## Input
 
 <ParamField path="prompt" type="string" required>
-   Text generation prompt
+  Text generation prompt
 </ParamField>
 
 <ParamField path="enableWebSearch" type="boolean" optional>
-   Enable web search for real-time information
+  Enable web search for real-time information
 </ParamField>
 
 <ParamField path="model" type="string" default="gpt-5-mini">
-   Model: `"gpt-5-mini"` or `"claude-sonnet-4-5-20250929"`
+  Model: `"gpt-5-mini"` or `"claude-sonnet-4-5-20250929"`
 </ParamField>
 
 ## Output
 
 <ResponseField name="text" type="string">
-   Generated text
+  Generated text
 </ResponseField>
 
 ## Example
 
 ```typescript
 const result = await services.ai.generateText({
-   prompt: `Write a one-line value prop for ${ctx.thisRow.get("Company")}`,
-   model: "claude-sonnet-4-5-20250929"
+  prompt: `Write a one-line value prop for ${ctx.thisRow.get("Company")}`,
+  model: "claude-sonnet-4-5-20250929",
 });
 
 return result.text;

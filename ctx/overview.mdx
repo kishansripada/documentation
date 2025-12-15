@@ -11,21 +11,21 @@ The Context object (`ctx`) provides a powerful API for programmatically interact
 ## Available APIs
 
 <CardGroup cols={2}>
-   <Card title="This Row" icon="table-rows" href="/ctx/this-row">
-      Get values from the current row
-   </Card>
-   <Card title="Sheets" icon="table" href="/ctx/sheets">
-      Add rows and query data across sheets
-   </Card>
-   <Card title="Utilities" icon="wrench" href="/ctx/utilities">
-      Helper functions for common data transformations
-   </Card>
-   <Card title="Workflows" icon="traffic-light" href="/ctx/workflow">
-      Orchestrate execution with sleep and halt
-   </Card>
-   <Card title="Webhooks" icon="webhook" href="/webhooks/overview">
-      Receive and process HTTP requests in your workflow
-   </Card>
+  <Card title="This Row" icon="table-rows" href="/ctx/this-row">
+    Get values from the current row
+  </Card>
+  <Card title="Sheets" icon="table" href="/ctx/sheets">
+    Add rows and query data across sheets
+  </Card>
+  <Card title="Utilities" icon="wrench" href="/ctx/utilities">
+    Helper functions for common data transformations
+  </Card>
+  <Card title="Workflows" icon="traffic-light" href="/ctx/workflow">
+    Orchestrate execution with sleep and halt
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/webhooks/overview">
+    Receive and process HTTP requests in your workflow
+  </Card>
 </CardGroup>
 
 ## Getting Started
@@ -38,9 +38,9 @@ const email = ctx.thisRow.get("email");
 
 // Add a row to another sheet
 const newRow = await ctx.sheet("Contacts").addRow({
-   name: ctx.thisRow.get("name"),
-   email: email,
-   source: "Import",
+  name: ctx.thisRow.get("name"),
+  email: email,
+  source: "Import",
 });
 
 // Query data by value
@@ -49,21 +49,43 @@ const company = await ctx.getRowByValue("Companies", "Acme Corp");
 
 ## Key Features
 
--  **Row Operations**: Read data from the current row or any row in the sheet
--  **Cross-Sheet Access**: Push data between sheets and query related records
--  **Foreign Key Navigation**: Use dot notation to traverse relationships (e.g., `Companies.Owner.name`)
--  **Workflow Control**: Optimize execution with `halt()` for early termination signals
--  **Type Safety**: Column names and sheet names are validated at runtime
+- **Row Operations**: Read data from the current row or any row in the sheet
+- **Cross-Sheet Access**: Push data between sheets and query related records
+- **Foreign Key Navigation**: Use dot notation to traverse relationships (e.g., `Companies.Owner.name`)
+- **Workflow Control**: Optimize execution with `halt()` for early termination signals
+- **Type Safety**: Column names and sheet names are validated at runtime
 
 ## Context Properties
 
 The `ctx` object includes several key properties:
 
--  `ctx.rowId` - UUID of the current row
--  `ctx.colId` - UUID of the current column
--  `ctx.thisRow` - Helpers for the current row
--  `ctx.thisSheet` - Helpers scoped to the current sheet
--  `ctx.utils` - Utility functions for data transformation
+- `ctx.rowId` - UUID of the current row
+- `ctx.colId` - UUID of the current column
+- `ctx.thisCell` - Helpers for the currently executing cell (not available in webhook columns)
+- `ctx.thisRow` - Helpers for the current row
+- `ctx.thisSheet` - Helpers scoped to the current sheet
+- `ctx.utils` - Utility functions for data transformation
+
+## Cell objects (value + status + error)
+
+When you need access to **a cell’s execution metadata** (not just the value), use a **Cell object**:
+
+- Use `await ctx.thisRow.cell("Column Name")` to get `{ value, status, error, rowId, colId }` for a specific column on the current row.
+- Use `ctx.thisCell.get()` / `ctx.thisCell.set(value)` when you specifically mean the *currently executing* cell.
+
+### Low-level: write to any cell with `ctx.setCell()`
+
+If you need to set a cell that is **not** the current executing cell, use `ctx.setCell({ rowId, colId, value })`:
+
+```typescript
+const statusCol = await ctx.thisSheet.column("Status");
+
+await ctx.setCell({
+  rowId: ctx.rowId,
+  colId: statusCol.id,
+  value: "qualified",
+});
+```
 
 ## Common Patterns
 
@@ -76,19 +98,19 @@ const companyName = ctx.thisRow.get("Company");
 
 // Find or create company account in Accounts sheet
 const account = await ctx.sheet("Accounts").addRow({
-   "Company Name": companyName,
-   Status: "New",
+  "Company Name": companyName,
+  Status: "New",
 });
 
 // Enrich the contact's LinkedIn profile
 const linkedinUrl = await services.person.linkedin.findUrl({
-   name,
-   company: companyName,
+  name,
+  company: companyName,
 });
 
 if (linkedinUrl) {
-   const profile = await services.person.linkedin.enrich({ url: linkedinUrl });
-   return profile.job_title;
+  const profile = await services.person.linkedin.enrich({ url: linkedinUrl });
+  return profile.job_title;
 }
 ```
 
@@ -103,19 +125,19 @@ const website = ctx.thisRow.get("Website");
 const scraped = await services.scrape.website({ url: website });
 
 const analysis = await services.ai.generateObject({
-   prompt: `Based on this website, is ${companyName} in our ICP? 
+  prompt: `Based on this website, is ${companyName} in our ICP? 
    Our ICP: B2B SaaS companies, 50-500 employees, selling to enterprises.
    Website: ${scraped.markdown}`,
-   schema: z.object({
-      isICP: z.boolean(),
-      reason: z.string(),
-   }),
+  schema: z.object({
+    isICP: z.boolean(),
+    reason: z.string(),
+  }),
 });
 
 // Signal early termination if not a good fit
 if (!analysis.object.isICP) {
-   ctx.halt("Not in ICP");
-   return false;
+  ctx.halt("Not in ICP");
+  return false;
 }
 
 return true;

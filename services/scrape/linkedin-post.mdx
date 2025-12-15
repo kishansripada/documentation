@@ -4,45 +4,46 @@ description: "Extract content from a LinkedIn post"
 icon: "linkedin"
 ---
 
-<Info><Icon icon="coins" /> **1 credit** per post</Info>
+<Info>
+  <Icon icon="coins" /> **1 credit** per post
+</Info>
 
 ## Method
 
 ```typescript
-services.scrape.linkedinPost(params)
+services.scrape.linkedinPost(params);
 ```
 
 ## Input
 
 <ParamField path="url" type="string" required>
-   LinkedIn post URL
+  LinkedIn post URL
 </ParamField>
 
 ## Output
 
 <ResponseField name="content" type="string">
-   The post content/text
+  The post content/text
 </ResponseField>
 
 <ResponseField name="date" type="Date" optional>
-   Parsed date of the post
+  Parsed date of the post
 </ResponseField>
 
 <ResponseField name="relativeTime" type="string" optional>
-   Relative time string (e.g., "2w", "1mo")
+  Relative time string (e.g., "2w", "1mo")
 </ResponseField>
 
 <ResponseField name="url" type="string">
-   The post URL
+  The post URL
 </ResponseField>
 
 ## Example
 
 ```typescript
 const post = await services.scrape.linkedinPost({
-   url: ctx.thisRow.get("Post URL")
+  url: ctx.thisRow.get("Post URL"),
 });
 
 return post.content;
 ```
-

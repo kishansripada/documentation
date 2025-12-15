@@ -4,24 +4,28 @@ description: "A TypeScript library built for sales workflows"
 ---
 
 <Note>
-   **Join our Discord community** for support, feature requests, and to connect with other users →
-   [discord.gg/2gzDYzfnKJ](https://discord.gg/2gzDYzfnKJ)
+  **Join our Discord community** for support, feature requests, and to connect
+  with other users → [discord.gg/2gzDYzfnKJ](https://discord.gg/2gzDYzfnKJ)
 </Note>
 
 <Frame>
-   <iframe
-      width="100%"
-      height="400"
-      src="https://www.youtube.com/embed/hykfLuy92zE"
-      title="Getting Started with Orange Slice"
-      frameBorder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowFullScreen
-   />
+  <iframe
+    width="100%"
+    height="400"
+    src="https://www.youtube.com/embed/hykfLuy92zE"
+    title="Getting Started with Orange Slice"
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  />
 </Frame>
 
-<Card title="🚀 Watch our launch video" icon="play" href="https://www.youtube.com/watch?v=XifYozd8QGY">
-   See Orange Slice in action
+<Card
+  title="🚀 Watch our launch video"
+  icon="play"
+  href="https://www.youtube.com/watch?v=XifYozd8QGY"
+>
+  See Orange Slice in action
 </Card>
 
 ## What is Orange Slice?
@@ -30,12 +34,12 @@ Orange Slice is a **TypeScript library built for sales**. Write the logic, we fi
 
 Access a fully-typed library of data enrichments—from LinkedIn profiles to contact info to company intelligence. Just type `services.` and let your editor guide you.
 
--  **LinkedIn Profiles** - Full profile enrichment with work history, skills & education
--  **Contact Info** - Work emails, personal emails & phone numbers
--  **Company Intel** - Firmographics, financials, traffic & headcount trends
--  **Employee Search** - Find decision makers by title, department & seniority
--  **AI Research** - Deep research reports with live web access
--  **Web Scraping** - Extract data from any website with AI parsing
+- **LinkedIn Profiles** - Full profile enrichment with work history, skills & education
+- **Contact Info** - Work emails, personal emails & phone numbers
+- **Company Intel** - Firmographics, financials, traffic & headcount trends
+- **Employee Search** - Find decision makers by title, department & seniority
+- **AI Research** - Deep research reports with live web access
+- **Web Scraping** - Extract data from any website with AI parsing
 
 ## The `ctx` Object: Your Primary Interface
 
@@ -49,9 +53,9 @@ const title = ctx.thisRow.get("Title");
 
 // Generate personalized outreach message
 const outreach = await services.ai.generateText({
-   prompt: `Write a personalized cold email to ${name}, ${title} at ${company}. 
+  prompt: `Write a personalized cold email to ${name}, ${title} at ${company}. 
    Keep it under 100 words and focus on how we help sales teams save time.`,
-   model: "gpt-5-mini",
+  model: "gpt-5-mini",
 });
 
 return outreach.text;
@@ -69,8 +73,8 @@ const name = ctx.thisRow.get("Name");
 const company = ctx.thisRow.get("Company");
 
 const linkedin = await services.person.linkedin.findUrl({
-   name,
-   company,
+  name,
+  company,
 });
 
 return linkedin;
@@ -91,10 +95,10 @@ webhook.addRootFieldsToSheet("Leads", true);
 
 // Or process manually with custom logic
 await ctx.sheet("Leads").addRow({
-   email: webhook.body.email,
-   name: webhook.body.name,
-   source: webhook.query.source || "website",
-   received_at: new Date(webhook.receivedAt).toISOString(),
+  email: webhook.body.email,
+  name: webhook.body.name,
+  source: webhook.query.source || "website",
+  received_at: new Date(webhook.receivedAt).toISOString(),
 });
 
 return { success: true };
@@ -103,15 +107,19 @@ return { success: true };
 [Learn about webhooks →](/webhooks/overview)
 
 <CardGroup cols={3}>
-   <Card title="ctx Documentation" icon="code" href="/ctx/overview">
-      Read cells, navigate sheets, and control workflows
-   </Card>
-   <Card title="services Documentation" icon="layer-group" href="/services/introduction">
-      LinkedIn profiles, contact info, company intel, AI research
-   </Card>
-   <Card title="webhook Documentation" icon="webhook" href="/webhooks/overview">
-      Receive HTTP requests from external services
-   </Card>
+  <Card title="ctx Documentation" icon="code" href="/ctx/overview">
+    Read cells, navigate sheets, and control workflows
+  </Card>
+  <Card
+    title="services Documentation"
+    icon="layer-group"
+    href="/services/introduction"
+  >
+    LinkedIn profiles, contact info, company intel, AI research
+  </Card>
+  <Card title="webhook Documentation" icon="webhook" href="/webhooks/overview">
+    Receive HTTP requests from external services
+  </Card>
 </CardGroup>
 
 ## How It Works
@@ -126,8 +134,8 @@ const name = ctx.thisRow.get("Name");
 const company = ctx.thisRow.get("Company");
 
 const linkedin = await services.person.linkedin.findUrl({
-   name,
-   company,
+  name,
+  company,
 });
 
 return linkedin;
@@ -144,22 +152,34 @@ Process thousands of rows in parallel with automatic dependency resolution and p
 ## Get Started
 
 <CardGroup cols={2}>
-   <Card title="LinkedIn Profiles" icon="linkedin" href="/services/person/enrich">
-      Full profile enrichment with work history & skills
-   </Card>
-   <Card title="Contact Info" icon="address-book" href="/services/person/get-contact">
-      Work emails, personal emails & phone numbers
-   </Card>
-   <Card title="Company Intel" icon="building" href="/services/company/enrich">
-      Firmographics, financials & headcount trends
-   </Card>
-   <Card title="Employee Search" icon="users" href="/services/company/get-employees">
-      Find decision makers by title & seniority
-   </Card>
-   <Card title="AI Research" icon="brain" href="/services/ai/generate-research">
-      Deep research reports with live web access
-   </Card>
-   <Card title="Web Scraping" icon="spider-web" href="/services/scrape/website">
-      Extract data from any website with AI parsing
-   </Card>
+  <Card
+    title="LinkedIn Profiles"
+    icon="linkedin"
+    href="/services/person/enrich"
+  >
+    Full profile enrichment with work history & skills
+  </Card>
+  <Card
+    title="Contact Info"
+    icon="address-book"
+    href="/services/person/get-contact"
+  >
+    Work emails, personal emails & phone numbers
+  </Card>
+  <Card title="Company Intel" icon="building" href="/services/company/enrich">
+    Firmographics, financials & headcount trends
+  </Card>
+  <Card
+    title="Employee Search"
+    icon="users"
+    href="/services/company/get-employees"
+  >
+    Find decision makers by title & seniority
+  </Card>
+  <Card title="AI Research" icon="brain" href="/services/ai/generate-research">
+    Deep research reports with live web access
+  </Card>
+  <Card title="Web Scraping" icon="spider-web" href="/services/scrape/website">
+    Extract data from any website with AI parsing
+  </Card>
 </CardGroup>

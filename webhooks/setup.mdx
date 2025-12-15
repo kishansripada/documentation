@@ -17,7 +17,10 @@ icon: "play"
 https://api.orangeslice.ai/webhook/{spreadsheet_id}/{column_id}
 ```
 
-<Note>Your webhook URL is unique to the column and remains the same even if you rename the column.</Note>
+<Note>
+  Your webhook URL is unique to the column and remains the same even if you
+  rename the column.
+</Note>
 
 ## Testing Your Webhook
 
@@ -38,7 +41,7 @@ Or use tools like **Postman**, **Insomnia**, or **webhook.site**.
 ```typescript
 // Validate required fields
 if (!webhook.body.email || !webhook.body.name) {
-   return { success: false, error: "Name and email are required" };
+  return { success: false, error: "Name and email are required" };
 }
 
 // Add to leads sheet
@@ -56,9 +59,9 @@ const source = webhook.query.source; // "facebook"
 const campaign = webhook.query.campaign; // "summer"
 
 await ctx.sheet("Leads").addRow({
-   ...webhook.body,
-   source: source,
-   campaign: campaign,
+  ...webhook.body,
+  source: source,
+  campaign: campaign,
 });
 
 return { success: true };
@@ -70,7 +73,7 @@ return { success: true };
 // Check for API key
 const apiKey = webhook.headers["x-api-key"];
 if (apiKey !== "your-secret-key") {
-   return { error: "Unauthorized", status: 401 };
+  return { error: "Unauthorized", status: 401 };
 }
 
 webhook.addRootFieldsToSheet("Leads", true);
@@ -84,8 +87,8 @@ return { success: true };
 const existing = await ctx.getRowByValue("Leads", webhook.body.email, "email");
 
 if (existing) {
-   existing.set({ last_contact: new Date().toISOString() });
-   return { success: true, action: "updated" };
+  existing.set({ last_contact: new Date().toISOString() });
+  return { success: true, action: "updated" };
 }
 
 webhook.addRootFieldsToSheet("Leads", true);
@@ -101,9 +104,9 @@ const { name, company } = webhook.body;
 const linkedinUrl = await services.person.linkedin.findUrl({ name, company });
 
 await ctx.sheet("Leads").addRow({
-   ...webhook.body,
-   linkedin_url: linkedinUrl,
-   enriched_at: new Date().toISOString(),
+  ...webhook.body,
+  linkedin_url: linkedinUrl,
+  enriched_at: new Date().toISOString(),
 });
 
 return { success: true };
@@ -113,15 +116,15 @@ return { success: true };
 
 ```typescript
 try {
-   if (!webhook.body.email) {
-      throw new Error("Email is required");
-   }
+  if (!webhook.body.email) {
+    throw new Error("Email is required");
+  }
 
-   webhook.addRootFieldsToSheet("Leads", true);
-   return { success: true };
+  webhook.addRootFieldsToSheet("Leads", true);
+  return { success: true };
 } catch (error) {
-   console.error("Webhook error:", error);
-   return { success: false, error: error.message };
+  console.error("Webhook error:", error);
+  return { success: false, error: error.message };
 }
 ```
 
@@ -136,4 +139,6 @@ console.log("Headers:", webhook.headers);
 console.log("Query:", webhook.query);
 ```
 
-<Note>Console logs appear in the execution logs panel in the spreadsheet interface.</Note>
+<Note>
+  Console logs appear in the execution logs panel in the spreadsheet interface.
+</Note>

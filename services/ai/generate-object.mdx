@@ -4,46 +4,51 @@ description: "Generate structured JSON from natural language"
 icon: "brackets-curly"
 ---
 
-<Info><Icon icon="coins" /> **1 credit** per call</Info>
+<Info>
+  <Icon icon="coins" /> **1 credit** per call
+</Info>
 
 ## Method
 
 ```typescript
-services.ai.generateObject(params)
+services.ai.generateObject(params);
 ```
 
-<Note>Does NOT have internet access. Use for extraction/parsing, not research.</Note>
+<Note>
+  Does NOT have internet access. Use for extraction/parsing, not research.
+</Note>
 
 ## Input
 
 <ParamField path="prompt" type="string" required>
-   Prompt describing what to generate or extract
+  Prompt describing what to generate or extract
 </ParamField>
 
 <ParamField path="schema" type="ZodSchema" required>
-   Zod schema defining output structure (must be `z.object` at top level)
+  Zod schema defining output structure (must be `z.object` at top level)
 </ParamField>
 
 <ParamField path="model" type="string" default="gpt-5-mini">
-   Model: `"gpt-5-mini"`, `"gemini-2.0-flash"`, `"gemini-2.5-pro"`, or `"claude-sonnet-4-5-20250929"`
+  Model: `"gpt-5-mini"`, `"gemini-2.0-flash"`, `"gemini-2.5-pro"`, or
+  `"claude-sonnet-4-5-20250929"`
 </ParamField>
 
 ## Output
 
 <ResponseField name="object" type="object">
-   Generated JSON matching the provided schema
+  Generated JSON matching the provided schema
 </ResponseField>
 
 ## Example
 
 ```typescript
 const result = await services.ai.generateObject({
-   prompt: `Extract company info: ${ctx.thisRow.get("Description")}`,
-   schema: z.object({
-      industry: z.string(),
-      products: z.array(z.string()),
-      target_market: z.enum(["B2B", "B2C", "Both"])
-   })
+  prompt: `Extract company info: ${ctx.thisRow.get("Description")}`,
+  schema: z.object({
+    industry: z.string(),
+    products: z.array(z.string()),
+    target_market: z.enum(["B2B", "B2C", "Both"]),
+  }),
 });
 
 return result.object.industry;

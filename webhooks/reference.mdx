@@ -55,7 +55,7 @@ URL query parameters as key-value pairs.
 
 ```typescript
 // URL: https://api.orangeslice.ai/webhook/abc?source=facebook
-const source = webhook.query.source;  // "facebook"
+const source = webhook.query.source; // "facebook"
 ```
 
 ---
@@ -67,6 +67,7 @@ webhook.body: any
 ```
 
 The parsed request body. Type depends on `Content-Type`:
+
 - **application/json** - JavaScript object
 - **application/x-www-form-urlencoded** - Key-value pairs
 - **text/plain** - String
@@ -129,10 +130,10 @@ webhook.addRootFieldsToSheet(sheetName: string, create?: boolean): void
 
 **Parameters:**
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `sheetName` | `string` | Yes | Name of the sheet to add the row to |
-| `create` | `boolean` | No | If `true`, creates columns that don't exist. Default: `false` |
+| Parameter   | Type      | Required | Description                                                   |
+| ----------- | --------- | -------- | ------------------------------------------------------------- |
+| `sheetName` | `string`  | Yes      | Name of the sheet to add the row to                           |
+| `create`    | `boolean` | No       | If `true`, creates columns that don't exist. Default: `false` |
 
 **Example:**
 
@@ -144,6 +145,7 @@ webhook.addRootFieldsToSheet("Leads", true);
 ```
 
 **Notes:**
+
 - Only processes root-level fields (nested objects are not flattened)
 - Column names must match the keys in `webhook.body`
 - If `create` is `false` and a field doesn't have a matching column, it's ignored
@@ -172,15 +174,15 @@ webhook.addRootFieldsToSheet("Leads", true);
 
 ```typescript
 interface Webhook {
-   colId: string;
-   method: string;
-   url: string;
-   headers: Record<string, string>;
-   query: Record<string, string>;
-   body: any;
-   receivedAt: number;
-   ip?: string;
-   
-   addRootFieldsToSheet(sheetName: string, create?: boolean): void;
+  colId: string;
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  query: Record<string, string>;
+  body: any;
+  receivedAt: number;
+  ip?: string;
+
+  addRootFieldsToSheet(sheetName: string, create?: boolean): void;
 }
 ```

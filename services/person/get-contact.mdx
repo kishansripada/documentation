@@ -20,47 +20,50 @@ services.person.contact.get(params);
 ## Input
 
 <ParamField path="linkedinUrl" type="string" optional>
-   LinkedIn profile URL
+  LinkedIn profile URL
 </ParamField>
 
 <ParamField path="firstName" type="string" optional>
-   First name (required if no linkedinUrl)
+  First name (required if no linkedinUrl)
 </ParamField>
 
 <ParamField path="lastName" type="string" optional>
-   Last name (required if no linkedinUrl)
+  Last name (required if no linkedinUrl)
 </ParamField>
 
 <ParamField path="company" type="string" optional>
-   Company name (required if no linkedinUrl)
+  Company name (required if no linkedinUrl)
 </ParamField>
 
 <ParamField path="required" type="array" required>
-   Contact types to retrieve: `"email"`, `"phone"`, `"work_email"`
+  Contact types to retrieve: `"email"`, `"phone"`, `"work_email"`
 </ParamField>
 
 <ParamField path="domain" type="string" optional>
-   Domain for work email lookup
+  Domain for work email lookup
 </ParamField>
 
-<Note>Provide either `linkedinUrl` OR (`firstName` + `lastName` + `company`).</Note>
+<Note>
+  Provide either `linkedinUrl` OR (`firstName` + `lastName` + `company`).
+</Note>
 
 ## Output
 
 <ResponseField name="emails" type="array">
-   Array of email objects with `email`, `type` (work/personal/unknown), and `confidence`
+  Array of email objects with `email`, `type` (work/personal/unknown), and
+  `confidence`
 </ResponseField>
 
 <ResponseField name="phones" type="array">
-   Array of phone objects with `phone`, `type`, and `confidence`
+  Array of phone objects with `phone`, `type`, and `confidence`
 </ResponseField>
 
 ## Example
 
 ```typescript
 const contact = await services.person.contact.get({
-   linkedinUrl: ctx.thisRow.get("LinkedIn URL"),
-   required: ["email", "phone"],
+  linkedinUrl: ctx.thisRow.get("LinkedIn URL"),
+  required: ["email", "phone"],
 });
 
 return contact.emails[0]?.email;
@@ -69,11 +72,11 @@ return contact.emails[0]?.email;
 ```typescript
 // Without LinkedIn URL
 const contact = await services.person.contact.get({
-   firstName: "John",
-   lastName: "Smith",
-   company: "Acme Corp",
-   required: ["work_email"],
-   domain: "acme.com",
+  firstName: "John",
+  lastName: "Smith",
+  company: "Acme Corp",
+  required: ["work_email"],
+  domain: "acme.com",
 });
 
 return contact.emails.find((e) => e.type === "work")?.email;
